@@ -1,5 +1,24 @@
 #!/usr/bin/env python
 
+'''
+DelugeFS - A shared-nothing distributed filesystem built using Python, Bittorrent, Mercurial and Zeroconf
+Copyright (C) 2013  Derek Anderson
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+'''
+
 import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
