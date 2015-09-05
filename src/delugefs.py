@@ -786,6 +786,8 @@ if __name__ == '__main__':
         usage('root not set')
     if not 'port' in config:
         btport = random.randint(10000, 20000)
+    else:
+        btport = config['port']
 
 
     server = DelugeFS(config['cluster'], config['root'], btport, create=config.get('create'))
