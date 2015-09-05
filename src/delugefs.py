@@ -431,15 +431,13 @@ class DelugeFS(LoggingMixIn, Operations):
     def __register(self):
         #return
 
-        if not (REPO_TYPE == 'git'):
-            #TODO replace server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
-            #TODO replace server.register_function(self.please_mirror)
-            #TODO replace server.register_function(self.get_active_info_hashes)
-            #TODO replace server.register_function(self.please_stop_mirroring)
-
-            #TODO replace t = threading.Thread(target=server.serve)
-            #TODO replace t.daemon = True
-            #TODO replace t.start()
+        #TODO replace server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
+        #TODO replace server.register_function(self.please_mirror)
+        #TODO replace server.register_function(self.get_active_info_hashes)
+        #TODO replace server.register_function(self.please_stop_mirroring)
+        #TODO replace t = threading.Thread(target=server.serve)
+        #TODO replace t.daemon = True
+        #TODO replace t.start()
 
         print 'registering bonjour listener...'
         self.bj_name = self.name+'__'+uuid.uuid4().hex
