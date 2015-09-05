@@ -23,14 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
-import hgapi as hg
-import pygit2
+import sh
 import pybonjour
-import jsonrpc
 
 
-REPO_TYPE = 'git'
-# REPO_TYPE = 'hg'
 SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
@@ -41,24 +37,19 @@ class Peer(object):
         self.host = host
         self.addr = socket.gethostbyname(host)
         self.port = port
-        self.server = jsonrpc.ServerProxy(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=(host,port)))
-        self.hg_port = self.server.get_hg_port()
-        self.bt_port = self.server.get_bt_port()
+        self.git_port = 22
         self.free_space = self.server.get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, create=False):
         self.name = name
         self.root = os.path.realpath(root)
-        if REPO_TYPE == 'git':
-            self.repodb = os.path.join(self.root, u'hgdb')
-        else:
-            self.repodb = os.path.join(self.root, u'gitdb')
+        self.repodb = os.path.join(self.root, u'gitdb')
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
         self.shadow = os.path.join(self.root, u'shadow')
         self.rpc_port = random.randint(10000, 20000)
-        self.hg_port = random.randint(10000, 20000)
+        self.git_port = 22
         self.peers = {}
         self.bt_handles = {}
         self.bt_in_progress = set()
@@ -85,7 +76,11 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'give me a sec to look for other peers...'
         time.sleep(2)
 
-        self.repo = hg.Repo(self.repodb)
+        # create a symlink so we can git pull remotely
+        os.mkdir('/usr/home/btfs/symlinks')
+        os.symlink(self.root, '/usr/home/btfs/symlinks/%s' % (self.name))
+        if os.path.isdir(os.path.join(self.repodb, '.git')):
+            self.repo = sh.git.bake(_cwd=self.repodb)
         cnfn = os.path.join(self.repodb, '.__delugefs__', 'cluster_name')
         if create:
             if os.listdir(self.root):
@@ -93,12 +88,12 @@ class DelugeFS(LoggingMixIn, Operations):
             if self.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.peers), 's' if len(self.peers)>1 else '', self.name))
             os.mkdir(self.repodb)
-            self.repo.hg_init()
+            self.repo.init()
             os.mkdir(os.path.join(self.repodb, '.__delugefs__'))
             with open(cnfn, 'w') as f:
                 f.write(self.name)
-            self.repo.hg_add(cnfn)
-            self.repo.hg_commit(cnfn)
+            self.repo.add(cnfn)
+            self.repo.commit(m='repo created')
         else:
             if os.path.isfile(cnfn):
                 with open(cnfn, 'r') as f:
@@ -112,25 +107,22 @@ class DelugeFS(LoggingMixIn, Operations):
                     raise Exception('--create not specified, no repo exists at %s and no peers of cluster "%s" found' % (self.root, self.name))
                 try:
                     apeer = self.peers[iter(self.peers).next()]
-                    #server = jsonrpc.ServerProxy(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=addr))
-                    #remote_hg_port = apeer.server.get_hg_port()
                     if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
-                    self.repo.hg_clone('http://%s:%i' % (apeer.host, apeer.hg_port))
+                    self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name), self.repodb)
                 except Exception as e:
-                    if os.path.isdir(os.path.join(self.repodb, '.hg')):
+                    if os.path.isdir(os.path.join(self.repodb, '.git')):
                         shutil.rmtree(self.repodb)
                     traceback.print_exc()
                     raise e
                 print 'success cloning repo!'
 
-        for path in self.repo.hg_status()['?']:
-            fn = os.path.join(self.repodb, path)
-            print 'deleting untracked file', fn
-            os.remove(fn)
+#        for path in self.repo.hg_status()['?']:
+#            fn = os.path.join(self.repodb, path)
+#            print 'deleting untracked file', fn
+#            os.remove(fn)
 
-        prune_empty_dirs(self.repodb)
+#        prune_empty_dirs(self.repodb)
 
-        #self.repo.hg_summary()
         print '='*80
 
         if not os.path.isdir(self.tmp): os.makedirs(self.tmp)
@@ -140,8 +132,8 @@ class DelugeFS(LoggingMixIn, Operations):
         self.rwlock = threading.Lock()
         self.open_files = {}
         print 'init', self.repodb
-        self.repo.hg_status()
-        self.repo.hg_update('--clean')
+        self.repo.status()
+
         t = threading.Thread(target=self.__register, args=())
         t.daemon = True
         t.start()
@@ -206,7 +198,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
             for root, dirs, files in os.walk(self.repodb):
                 #print 'root, dirs, files', root, dirs, files
-                if root.startswith(os.path.join(self.repodb, '.hg')): continue
+                if root.startswith(os.path.join(self.repodb, '.git')): continue
                 if root.startswith(os.path.join(self.repodb, '.__delugefs__')): continue
                 for fn in files:
                     if fn=='.__delugefs_dir__': continue
@@ -262,7 +254,7 @@ class DelugeFS(LoggingMixIn, Operations):
         #print 'self.repodb', self.repodb
         for root, dirs, files in os.walk(self.repodb):
             #print 'root, dirs, files', root, dirs, files
-            if root.startswith(os.path.join(self.repodb, '.hg')): continue
+            if root.startswith(os.path.join(self.repodb, '.git')): continue
             if root.startswith(os.path.join(self.repodb, '.__delugefs__')): continue
             for fn in files:
                 if fn=='.__delugefs_dir__': continue
@@ -312,8 +304,7 @@ class DelugeFS(LoggingMixIn, Operations):
         while True:
             if self.should_push:
                 for peer in self.peers.values():
-                    #self.repo.hg_push('http://%s:%i' % (peer.host, peer.hg_port))
-                    peer.server.you_should_pull_from(self.bj_name)
+                    self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name, 'master:refs/heads/tomerge')
                 self.should_push = False
             time.sleep(10)
 
@@ -372,23 +363,6 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.repo.hg_pull('http://%s:%i' % (apeer.host, apeer.hg_port))
                 self.repo.hg_update('tip')
                 return 'pulling from new peer', apeer
-
-
-
-    def get_hg_port(self):
-        return self.hg_port
-
-    def get_bt_port(self):
-        return self.bt_port
-
-    def you_should_pull_from(self, peer_name):
-        if peer_name in self.peers:
-            apeer = self.peers[peer_name]
-            self.repo.hg_pull('http://%s:%i' % (apeer.host, apeer.hg_port))
-            self.repo.hg_update('tip')
-            return 'i updated, thanks!'
-        else:
-            return "i don't know you, "+ peer_name
 
     def please_mirror(self, path):
         try:
@@ -449,25 +423,15 @@ class DelugeFS(LoggingMixIn, Operations):
     def __register(self):
         #return
 
-        server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
-        server.register_function(self.get_hg_port)
-        server.register_function(self.get_bt_port)
-        server.register_function(self.you_should_pull_from)
-        server.register_function(self.please_mirror)
-        server.register_function(self.get_active_info_hashes)
-        server.register_function(self.get_free_space)
-        server.register_function(self.please_stop_mirroring)
+        if not (REPO_TYPE == 'git'):
+            server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
+            server.register_function(self.please_mirror)
+            server.register_function(self.get_active_info_hashes)
+            server.register_function(self.please_stop_mirroring)
 
-
-        t = threading.Thread(target=server.serve)
-        t.daemon = True
-        t.start()
-
-        t = threading.Thread(target=self.repo.hg_serve, args=(self.hg_port,))
-        t.daemon = True
-        t.start()
-        print 'http://localhost:%i/' % self.hg_port
-
+            t = threading.Thread(target=server.serve)
+            t.daemon = True
+            t.start()
 
         print 'registering bonjour listener...'
         self.bj_name = self.name+'__'+uuid.uuid4().hex
@@ -509,7 +473,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.open_files[path] = tmp
             with open(self.repodb+path,'wb') as f:
                 pass
-            self.repo.hg_add(self.repodb+path)
+            self.repo.add(self.repodb+path)
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -557,9 +521,9 @@ class DelugeFS(LoggingMixIn, Operations):
             fn = self.repodb+path
             ret = os.mkdir(fn, flags)
             with open(fn+'/.__delugefs_dir__','w') as f:
-                f.write("hg doesn't track empty dirs, so we add this file...")
-            self.repo.hg_add(fn+'/.__delugefs_dir__')
-            self.repo.hg_commit('mkdir %s' % path, files=[fn+'/.__delugefs_dir__'])
+                f.write("git doesn't track empty dirs, so we add this file...")
+            self.repo.add(fn+'/.__delugefs_dir__')
+            self.repo.commit(m='mkdir '+path)
             self.should_push = True
             return ret
 
@@ -627,7 +591,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def readdir(self, path, fh):
         with self.rwlock:
-            return ['.', '..'] + [x for x in os.listdir(self.repodb+path) if x!=".__delugefs_dir__" and x!='.hg']
+            return ['.', '..'] + [x for x in os.listdir(self.repodb+path) if x!=".__delugefs_dir__" and x!='.git']
 
 #    readlink = os.readlink
 
@@ -672,7 +636,7 @@ class DelugeFS(LoggingMixIn, Operations):
             #if os.path.exists(self.shadow+path): os.remove(self.shadow+path)
             #os.symlink(os.path.join(dat_dir, uid), self.shadow+path)
             #print 'committing', self.repodb+path
-            self.repo.hg_commit('wrote %s' % path, files=[self.repodb+path])
+            self.repo.commit(m='wrote '+path)
             self.should_push = True
             self.__add_torrent(tdata, path)
         except Exception as e:
@@ -695,8 +659,8 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if old.startswith('/.__delugefs__'): return 0
             if new.startswith('/.__delugefs__'): return 0
-            self.repo.hg_rename(self.repodb+old, self.repodb+new)
-            self.repo.hg_commit('rename %s to %s' % (old,new), files=[self.repodb+old, self.repodb+new])
+            self.repo.mv(self.repodb+old, self.repodb+new)
+            self.repo.commit(m='rename '+old+' to '+new)
             self.should_push = True
 
 #    rmdir = os.rmdir
@@ -706,8 +670,8 @@ class DelugeFS(LoggingMixIn, Operations):
             if path.startswith('/.__delugefs__'): return 0
             fn = self.repodb+path+'/.__delugefs_dir__'
             if os.path.isfile(fn):
-                self.repo.hg_remove(fn)
-                self.repo.hg_commit('rmdir %s' % path, files=[fn])
+                self.repo.rm(fn)
+                self.repo.commit(m='rmdir '+path)
                 self.should_push = True
             if os.path.isdir(self.repodb+path):
                 os.rmdir(self.repodb+path)
@@ -749,8 +713,8 @@ class DelugeFS(LoggingMixIn, Operations):
                     os.remove(dfn)
                     print 'deleted', dfn
             if True:#try:
-                self.repo.hg_remove(fn)
-                self.repo.hg_commit('unlink', files=[fn])
+                self.repo.rm(fn)
+                self.repo.commit(m='unlink '+path)
                 self.should_push = True
             #except Exception as e:
             #    if 'file is untracked' in str(e):

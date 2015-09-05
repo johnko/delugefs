@@ -3,9 +3,9 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 # This Fork's Planned Changes
 
 - Git instead of Mercurial
-- SSH instead of JSONRPC
-- SSH authorized_keys2 stored on delugefs
-- SSH known_hosts stored on delugefs
+- SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
+- SSH prep-node script to bootstrap id_ed25519.pub and known_hosts
+- force SSH command in authorized_keys2 like ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
 - FUSE mounted allow_other
@@ -15,7 +15,6 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 Tick if tested:
 
 - [ ] specify BitTorrent start port number with --port
-
 
 # Overview
 
