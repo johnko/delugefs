@@ -585,15 +585,19 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(dat_fn, flags)
                 else:
                     return os.open(fn, flags)
+            # read and write below
             if path.startswith('/.__delugefs__'): return 0
-            tmp = uuid.uuid4().hex
-            if os.path.isfile(fn):
-                with open(fn, 'rb') as f:
-                    prev = lt.bdecode(f.read())['info']['name']
-                    prev_fn = os.path.join(self.dat, prev[:2], prev)
-                    if os.path.isfile(prev_fn):
-                        shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
-            self.open_files[path] = tmp
+            if self.open_files[path]:
+                tmp = self.open_files[path]
+            else:
+                tmp = uuid.uuid4().hex
+                if os.path.isfile(fn):
+                    with open(fn, 'rb') as f:
+                        prev = lt.bdecode(f.read())['info']['name']
+                        prev_fn = os.path.join(self.dat, prev[:2], prev)
+                        if os.path.isfile(prev_fn):
+                            shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
+                self.open_files[path] = tmp
             return os.open(os.path.join(self.tmp, tmp), flags)
             return 0
 
