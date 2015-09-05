@@ -599,7 +599,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         t.set_creator("DelugeFS");
                         lt.set_piece_hashes(t, self.tmp)
                         tdata = t.generate()
-                        prev = lt.bencode(tdata)['info']['name']
+                        prev = lt.bdecode(lt.bencode(tdata))['info']['name']
                         del tdata
                         del t
                         del fs
