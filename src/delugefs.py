@@ -482,7 +482,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.open_files[path] = tmp
             with open(self.repodb+path,'wb') as f:
                 pass
-            self.repo.add(self.repodb+path)
+            self.repo.add(self.repodb+path) # blank file
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -618,7 +618,7 @@ class DelugeFS(LoggingMixIn, Operations):
             return ret
 
     def finalize(self, path, uid):
-        #print 'finalize', path, uid
+        print 'finalize', path, uid
         try:
             fs = lt.file_storage()
             tmp_fn = os.path.join(self.tmp, uid)
