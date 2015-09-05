@@ -85,7 +85,8 @@ class DelugeFS(LoggingMixIn, Operations):
 
         # create a symlink so we can git pull remotely from a standard location
         os.mkdir('/usr/home/delugefs/symlinks')
-        os.symlink(self.root, '/usr/home/delugefs/symlinks/%s' % (self.name))
+        if not os.path.exists('/usr/home/delugefs/symlinks/%s' % (self.name)):
+            os.symlink(self.root, '/usr/home/delugefs/symlinks/%s' % (self.name))
         self.repo = sh.git.bake(_cwd=self.repodb)
         cnfn = os.path.join(self.repodb, '.__delugefs__', 'cluster_name')
         if create:
