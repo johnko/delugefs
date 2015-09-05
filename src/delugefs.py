@@ -84,7 +84,8 @@ class DelugeFS(LoggingMixIn, Operations):
         time.sleep(2)
 
         # create a symlink so we can git pull remotely from a standard location
-        os.mkdir('/usr/home/delugefs/symlinks')
+        if not os.path.exists('/usr/home/delugefs/symlinks'):
+            os.mkdir('/usr/home/delugefs/symlinks')
         if not os.path.exists('/usr/home/delugefs/symlinks/%s' % (self.name)):
             os.symlink(self.root, '/usr/home/delugefs/symlinks/%s' % (self.name))
         self.repo = sh.git.bake(_cwd=self.repodb)
@@ -94,7 +95,8 @@ class DelugeFS(LoggingMixIn, Operations):
                 raise Exception('--create specified, but %s is not empty' % self.root)
             if self.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.peers), 's' if len(self.peers)>1 else '', self.name))
-            os.mkdir(self.repodb)
+            if not os.path.exists(self.repodb):
+                os.mkdir(self.repodb)
             self.repo.init()
             os.mkdir(os.path.join(self.repodb, '.__delugefs__'))
             with open(cnfn, 'w') as f:
