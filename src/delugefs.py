@@ -38,7 +38,7 @@ class Peer(object):
         self.addr = socket.gethostbyname(host)
         self.port = port
         self.git_port = 22
-        self.free_space = self.server.get_free_space()
+        #TODO replace self.free_space = self.server.get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, create=False):
@@ -254,7 +254,7 @@ class DelugeFS(LoggingMixIn, Operations):
             time.sleep(random.randint(3,7))
             #print '='*80
             self.__write_active_torrents()
-            self.__check_for_undermirrored_files()
+            #TODO replace self.__check_for_undermirrored_files()
 
 
     def __load_local_torrents(self):
@@ -432,14 +432,14 @@ class DelugeFS(LoggingMixIn, Operations):
         #return
 
         if not (REPO_TYPE == 'git'):
-            server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
-            server.register_function(self.please_mirror)
-            server.register_function(self.get_active_info_hashes)
-            server.register_function(self.please_stop_mirroring)
+            #TODO replace server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
+            #TODO replace server.register_function(self.please_mirror)
+            #TODO replace server.register_function(self.get_active_info_hashes)
+            #TODO replace server.register_function(self.please_stop_mirroring)
 
-            t = threading.Thread(target=server.serve)
-            t.daemon = True
-            t.start()
+            #TODO replace t = threading.Thread(target=server.serve)
+            #TODO replace t.daemon = True
+            #TODO replace t.start()
 
         print 'registering bonjour listener...'
         self.bj_name = self.name+'__'+uuid.uuid4().hex
