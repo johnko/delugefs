@@ -7,7 +7,6 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 - SSH authorized_keys2 stored on delugefs
 - SSH known_hosts stored on delugefs
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
-- "dfs_volumeID.tcp" in bonjour announcement instead of "delugefs.tcp"
 - possibility to manually add external network peer
 - FUSE mounted allow_other
 
