@@ -46,7 +46,7 @@ class Peer(object):
         self.free_space = self.server.get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, btport, create=False):
+    def __init__(self, name, root, bt_start_port, create=False):
         self.name = name
         self.root = os.path.realpath(root)
         if REPO_TYPE == 'git':
@@ -68,7 +68,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.root):
             os.mkdir(self.root)
 
-        bt_start_port = btport
         self.bt_session = lt.session()
         self.bt_session.listen_on(bt_start_port, bt_start_port+10)
         self.bt_port = self.bt_session.listen_port()
