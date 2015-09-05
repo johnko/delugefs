@@ -83,7 +83,7 @@ To replicate a file:
 The first time the first node is ever brought up:
 
 ```
-server1$ ./delugefs.py --create --id bigstore \
+server1$ ./delugefs.py --create --cluster bigstore \
     --root /mnt/disk1/.bigstoredb \
     --mount ~/bigstore
 ```
@@ -93,7 +93,7 @@ All future invocations would omit the "--create".
 To bring up an additional node on a different disk on the same machine:
 
 ```
-server1$ ./delugefs.py --id bigstore \
+server1$ ./delugefs.py --cluster bigstore \
     --root /mnt/disk2/.bigstoredb
 ```
 
@@ -102,7 +102,7 @@ server1$ ./delugefs.py --id bigstore \
 To bring up an additional node on a different machine:
 
 ```
-server2$ ./delugefs.py --id bigstore \
+server2$ ./delugefs.py --cluster bigstore \
     --root /mnt/disk3/.bigstoredb \
     --mount ~/bigstore
 ```
