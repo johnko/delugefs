@@ -173,10 +173,11 @@ class DelugeFS(LoggingMixIn, Operations):
 #                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
 #                            peer.server.please_mirror(path)
                     #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
-                    state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating']
-                    f.write('%s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
+                    # state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating']
+                    f.write('%s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %d\n' % \
                             ("something", s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
-                            s.num_peers, state_str[s.state]))
+                            s.num_peers, s.state))
+                            # state_str[s.state] is out of range
         except Exception as e:
             traceback.print_exc()
 
@@ -621,13 +622,9 @@ class DelugeFS(LoggingMixIn, Operations):
         try:
             fs = lt.file_storage()
             tmp_fn = os.path.join(self.tmp, uid)
-            try: st_size = os.stat(tmp_fn).st_size
-            except:
-                traceback.print_exc()
-                return
 
-            #print tmp_fn, st_size
-            lt.add_files(fs, tmp_fn, st_size)
+            #print tmp_fn
+            lt.add_files(fs, tmp_fn)
             t = lt.create_torrent(fs)
             t.set_creator("DelugeFS");
             lt.set_piece_hashes(t, self.tmp)
