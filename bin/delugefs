@@ -49,6 +49,7 @@ if [ ! -e /usr/home/delugefs/.ssh/id_ed25519 ]; then
 fi
 install -m 644 -o delugefs ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
 install -m 755 -o delugefs ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
+chown delugefs /${ZFS_DATASET}
 
 
 if ! mount | grep "/tank/${CLUSTER_ID}" > /dev/null 2> /dev/null ; then
