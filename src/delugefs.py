@@ -29,7 +29,8 @@ import pybonjour
 import jsonrpc
 
 
-REPOT_TYPE = 'git'
+REPO_TYPE = 'git'
+# REPO_TYPE = 'hg'
 SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
