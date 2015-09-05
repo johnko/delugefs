@@ -58,7 +58,7 @@ fi
 su -l delugefs -c "${PYSCRIPT} \
     ${CREATE} \
     ${MOUNT} \
-    --id ${CLUSTER_ID} \
+    --cluster ${CLUSTER_ID} \
     --root /${ZFS_DATASET}/.${CLUSTER_ID}db $*"
 
 # reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
