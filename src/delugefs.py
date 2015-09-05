@@ -24,10 +24,12 @@ import os, errno, sys, threading, collections, uuid, shutil, traceback, random, 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
 import hgapi as hg
+import pygit2
 import pybonjour
 import jsonrpc
 
 
+REPOT_TYPE = 'git'
 SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
@@ -47,7 +49,10 @@ class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, create=False):
         self.name = name
         self.root = os.path.realpath(root)
-        self.hgdb = os.path.join(self.root, u'hgdb')
+        if REPO_TYPE == 'git':
+            self.repodb = os.path.join(self.root, u'hgdb')
+        else:
+            self.repodb = os.path.join(self.root, u'gitdb')
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
         self.shadow = os.path.join(self.root, u'shadow')
@@ -80,16 +85,16 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'give me a sec to look for other peers...'
         time.sleep(2)
 
-        self.repo = hg.Repo(self.hgdb)
-        cnfn = os.path.join(self.hgdb, '.__delugefs__', 'cluster_name')
+        self.repo = hg.Repo(self.repodb)
+        cnfn = os.path.join(self.repodb, '.__delugefs__', 'cluster_name')
         if create:
             if os.listdir(self.root):
                 raise Exception('--create specified, but %s is not empty' % self.root)
             if self.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.peers), 's' if len(self.peers)>1 else '', self.name))
-            os.mkdir(self.hgdb)
+            os.mkdir(self.repodb)
             self.repo.hg_init()
-            os.mkdir(os.path.join(self.hgdb, '.__delugefs__'))
+            os.mkdir(os.path.join(self.repodb, '.__delugefs__'))
             with open(cnfn, 'w') as f:
                 f.write(self.name)
             self.repo.hg_add(cnfn)
@@ -109,21 +114,21 @@ class DelugeFS(LoggingMixIn, Operations):
                     apeer = self.peers[iter(self.peers).next()]
                     #server = jsonrpc.ServerProxy(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=addr))
                     #remote_hg_port = apeer.server.get_hg_port()
-                    if not os.path.isdir(self.hgdb): os.mkdir(self.hgdb)
+                    if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
                     self.repo.hg_clone('http://%s:%i' % (apeer.host, apeer.hg_port))
                 except Exception as e:
-                    if os.path.isdir(os.path.join(self.hgdb, '.hg')):
-                        shutil.rmtree(self.hgdb)
+                    if os.path.isdir(os.path.join(self.repodb, '.hg')):
+                        shutil.rmtree(self.repodb)
                     traceback.print_exc()
                     raise e
                 print 'success cloning repo!'
 
         for path in self.repo.hg_status()['?']:
-            fn = os.path.join(self.hgdb, path)
+            fn = os.path.join(self.repodb, path)
             print 'deleting untracked file', fn
             os.remove(fn)
 
-        prune_empty_dirs(self.hgdb)
+        prune_empty_dirs(self.repodb)
 
         #self.repo.hg_summary()
         print '='*80
@@ -134,7 +139,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.shadow): os.makedirs(self.shadow)
         self.rwlock = threading.Lock()
         self.open_files = {}
-        print 'init', self.hgdb
+        print 'init', self.repodb
         self.repo.hg_status()
         self.repo.hg_update('--clean')
         t = threading.Thread(target=self.__register, args=())
@@ -156,7 +161,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __write_active_torrents(self):
         try:
-            with open(os.path.join(self.hgdb, '.__delugefs__', 'active_torrents'), 'w') as f:
+            with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
                 for path, h in self.bt_handles.items():
                     s = h.status()
 #                    torrent_peers = h.get_peer_info()
@@ -199,10 +204,10 @@ class DelugeFS(LoggingMixIn, Operations):
             fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
             print 'fs_free_space: %0.2fGB' % fs_free_space
 
-            for root, dirs, files in os.walk(self.hgdb):
+            for root, dirs, files in os.walk(self.repodb):
                 #print 'root, dirs, files', root, dirs, files
-                if root.startswith(os.path.join(self.hgdb, '.hg')): continue
-                if root.startswith(os.path.join(self.hgdb, '.__delugefs__')): continue
+                if root.startswith(os.path.join(self.repodb, '.hg')): continue
+                if root.startswith(os.path.join(self.repodb, '.__delugefs__')): continue
                 for fn in files:
                     if fn=='.__delugefs_dir__': continue
                     fn = os.path.join(root, fn)
@@ -212,7 +217,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         continue
                     uid = e['info']['name']
                     size = e['info']['length']
-                    path = fn[len(self.hgdb):]
+                    path = fn[len(self.repodb):]
                     if counter[uid] < 2:
                         peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
                         print 'peer_free_space_list', peer_free_space_list
@@ -254,11 +259,11 @@ class DelugeFS(LoggingMixIn, Operations):
 
 
     def __load_local_torrents(self):
-        #print 'self.hgdb', self.hgdb
-        for root, dirs, files in os.walk(self.hgdb):
+        #print 'self.repodb', self.repodb
+        for root, dirs, files in os.walk(self.repodb):
             #print 'root, dirs, files', root, dirs, files
-            if root.startswith(os.path.join(self.hgdb, '.hg')): continue
-            if root.startswith(os.path.join(self.hgdb, '.__delugefs__')): continue
+            if root.startswith(os.path.join(self.repodb, '.hg')): continue
+            if root.startswith(os.path.join(self.repodb, '.__delugefs__')): continue
             for fn in files:
                 if fn=='.__delugefs_dir__': continue
                 fn = os.path.join(root, fn)
@@ -278,7 +283,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
                     #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
                     print 'added ', fn, '(%s)'%uid
-                    self.bt_handles[fn[len(self.hgdb):]] = h
+                    self.bt_handles[fn[len(self.repodb):]] = h
         print 'self.bt_handles', self.bt_handles
 
 
@@ -388,7 +393,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def please_mirror(self, path):
         try:
             print 'please_mirror', path
-            fn = self.hgdb+path
+            fn = self.repodb+path
             torrent = get_torrent_dict(fn)
             if torrent:
                 self.__add_torrent(torrent, path)
@@ -490,9 +495,9 @@ class DelugeFS(LoggingMixIn, Operations):
         return ret
 
     def access(self, path, mode):
-        if not os.access(self.hgdb+path, mode):
+        if not os.access(self.repodb+path, mode):
             raise FuseOSError(errno.EACCES)
-        #return os.access(self.hgdb+path, mode)
+        #return os.access(self.repodb+path, mode)
 
 #    chmod = os.chmod
 #    chown = os.chown
@@ -502,9 +507,9 @@ class DelugeFS(LoggingMixIn, Operations):
             if path.startswith('/.__delugefs__'): return 0
             tmp = uuid.uuid4().hex
             self.open_files[path] = tmp
-            with open(self.hgdb+path,'wb') as f:
+            with open(self.repodb+path,'wb') as f:
                 pass
-            self.repo.hg_add(self.hgdb+path)
+            self.repo.hg_add(self.repodb+path)
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -520,7 +525,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if path in self.open_files:
             fn = os.path.join(self.tmp, self.open_files[path])
         else:
-            fn = self.hgdb+path
+            fn = self.repodb+path
             if os.path.isfile(fn):
                 if not path.startswith('/.__delugefs__'):
                     with open(fn, 'rb') as f:
@@ -549,7 +554,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def mkdir(self, path, flags):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = self.hgdb+path
+            fn = self.repodb+path
             ret = os.mkdir(fn, flags)
             with open(fn+'/.__delugefs_dir__','w') as f:
                 f.write("hg doesn't track empty dirs, so we add this file...")
@@ -592,7 +597,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def open(self, path, flags):
         with self.rwlock:
-            fn = self.hgdb+path
+            fn = self.repodb+path
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
                 if path.startswith('/.__delugefs__'):
                     return os.open(fn, flags)
@@ -622,7 +627,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def readdir(self, path, fh):
         with self.rwlock:
-            return ['.', '..'] + [x for x in os.listdir(self.hgdb+path) if x!=".__delugefs_dir__" and x!='.hg']
+            return ['.', '..'] + [x for x in os.listdir(self.repodb+path) if x!=".__delugefs_dir__" and x!='.hg']
 
 #    readlink = os.readlink
 
@@ -656,9 +661,9 @@ class DelugeFS(LoggingMixIn, Operations):
             lt.set_piece_hashes(t, self.tmp)
             tdata = t.generate()
             #print tdata
-            with open(self.hgdb+path, 'wb') as f:
+            with open(self.repodb+path, 'wb') as f:
                 f.write(lt.bencode(tdata))
-            #print 'wrote', self.hgdb+path
+            #print 'wrote', self.repodb+path
             dat_dir = os.path.join(self.dat, uid[:2])
             if not os.path.isdir(dat_dir):
                 try: os.mkdir(dat_dir)
@@ -666,8 +671,8 @@ class DelugeFS(LoggingMixIn, Operations):
             os.rename(tmp_fn, os.path.join(dat_dir, uid))
             #if os.path.exists(self.shadow+path): os.remove(self.shadow+path)
             #os.symlink(os.path.join(dat_dir, uid), self.shadow+path)
-            #print 'committing', self.hgdb+path
-            self.repo.hg_commit('wrote %s' % path, files=[self.hgdb+path])
+            #print 'committing', self.repodb+path
+            self.repo.hg_commit('wrote %s' % path, files=[self.repodb+path])
             self.should_push = True
             self.__add_torrent(tdata, path)
         except Exception as e:
@@ -690,8 +695,8 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if old.startswith('/.__delugefs__'): return 0
             if new.startswith('/.__delugefs__'): return 0
-            self.repo.hg_rename(self.hgdb+old, self.hgdb+new)
-            self.repo.hg_commit('rename %s to %s' % (old,new), files=[self.hgdb+old, self.hgdb+new])
+            self.repo.hg_rename(self.repodb+old, self.repodb+new)
+            self.repo.hg_commit('rename %s to %s' % (old,new), files=[self.repodb+old, self.repodb+new])
             self.should_push = True
 
 #    rmdir = os.rmdir
@@ -699,16 +704,16 @@ class DelugeFS(LoggingMixIn, Operations):
     def rmdir(self, path):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = self.hgdb+path+'/.__delugefs_dir__'
+            fn = self.repodb+path+'/.__delugefs_dir__'
             if os.path.isfile(fn):
                 self.repo.hg_remove(fn)
                 self.repo.hg_commit('rmdir %s' % path, files=[fn])
                 self.should_push = True
-            if os.path.isdir(self.hgdb+path):
-                os.rmdir(self.hgdb+path)
+            if os.path.isdir(self.repodb+path):
+                os.rmdir(self.repodb+path)
 
     def statfs(self, path):
-        fn = self.hgdb + path
+        fn = self.repodb + path
         #print repr(fn)
         stv = os.statvfs(fn.encode(FS_ENCODE))
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
@@ -734,7 +739,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def unlink(self, path):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = (self.hgdb+path).encode(FS_ENCODE)
+            fn = (self.repodb+path).encode(FS_ENCODE)
             with open(fn, 'rb') as f:
                 torrent = lt.bdecode(f.read())
                 torrent_info = torrent.get('info')  if torrent else None
@@ -749,7 +754,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.should_push = True
             #except Exception as e:
             #    if 'file is untracked' in str(e):
-            #        os.remove(self.hgdb+path)
+            #        os.remove(self.repodb+path)
             #    else:
             #        raise e
 
