@@ -1,0 +1,48 @@
+#!/bin/sh
+
+ZFS_DATASET="tank/delugefs"
+CLUSTER_ID="${1}"
+if [ "x--create" == "x${2}" ]; then
+    CREATE="--create"
+fi
+PYSCRIPT=/usr/home/delugefs/delugefs.py
+
+if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
+    kldload fuse
+    if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
+        echo "ERROR: can't load fuse"
+        exit 1
+    fi
+fi
+sysctl vfs.usermount=1 > /dev/null 2> /dev/null
+
+if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
+    zfs create ${ZFS_DATASET}
+    if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
+        echo "ERROR: can't find zfs ${ZFS_DATASET}"
+        exit 1
+    fi
+fi
+
+if ! id 1007 > /dev/null 2> /dev/null ; then
+    ### Add delugefs user
+    echo "delugefs:1007::::::/usr/home/delugefs:/bin/csh:" | adduser -w no -f -
+    pw groupmod operator -m delugefs
+    if ! id 1007 > /dev/null 2> /dev/null ; then
+        echo "ERROR: delugefs user not exist"
+        exit 1
+    fi
+fi
+
+install -m 644 -o delugefs ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
+install -m 755 -o delugefs ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
+
+if ! mount | grep "/tank/${CLUSTER_ID}" > /dev/null 2> /dev/null ; then
+    MOUNT="--mount /tank/${CLUSTER_ID}"
+fi
+
+su -l delugefs -c "${PYSCRIPT} \
+    ${CREATE} \
+    ${MOUNT} \
+    --id ${CLUSTER_ID} \
+    --root /${ZFS_DATASET}/.${CLUSTER_ID}db"
