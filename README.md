@@ -2,7 +2,6 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 
 # This Fork's Planned Changes
 
-- Git instead of Mercurial
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - SSH prep-node script to bootstrap id_ed25519.pub and known_hosts
 - force SSH command in authorized_keys2 like ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
@@ -15,6 +14,7 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 Tick if tested:
 
 - [ ] specify BitTorrent start port number with --port
+- [ ] Git instead of Mercurial
 
 # Overview
 

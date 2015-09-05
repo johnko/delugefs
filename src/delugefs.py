@@ -76,7 +76,7 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'give me a sec to look for other peers...'
         time.sleep(2)
 
-        # create a symlink so we can git pull remotely
+        # create a symlink so we can git pull remotely from a standard location
         os.mkdir('/usr/home/btfs/symlinks')
         os.symlink(self.root, '/usr/home/btfs/symlinks/%s' % (self.name))
         if os.path.isdir(os.path.join(self.repodb, '.git')):
@@ -121,7 +121,7 @@ class DelugeFS(LoggingMixIn, Operations):
 #            print 'deleting untracked file', fn
 #            os.remove(fn)
 
-#        prune_empty_dirs(self.repodb)
+        prune_empty_dirs(self.repodb)
 
         print '='*80
 
