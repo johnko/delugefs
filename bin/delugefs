@@ -13,6 +13,8 @@ if [ "x--create" == "x${1}" ]; then
 fi
 PYSCRIPT=/usr/home/delugefs/delugefs.py
 
+service mdnsd onestatus > /dev/null 2> /dev/null || service mdnsd onestart > /dev/null 2> /dev/null
+
 if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
     kldload fuse
     if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
