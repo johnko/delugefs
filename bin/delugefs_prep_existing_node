@@ -1,0 +1,13 @@
+#!/bin/sh
+
+NEWNODE="${1}"
+if [ "x" == "x${NEWNODE}" ]; then
+    echo "ERROR: missing New Node as arg1"
+    exit 1
+fi
+
+vi /usr/home/delugefs/.ssh/authorized_keys2
+chown delugefs /usr/home/delugefs/.ssh/authorized_keys2
+chmod 600      /usr/home/delugefs/.ssh/authorized_keys2
+
+su -l delugefs -c "ssh ${NEWNODE} hostname"
