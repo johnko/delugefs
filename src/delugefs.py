@@ -592,17 +592,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     try:
                         prev = lt.bdecode(f.read())['info']['name']
                     except:
-                        # bdecode above fails on new files
-                        fs = lt.file_storage()
-                        lt.add_files(fs, fn)
-                        t = lt.create_torrent(fs)
-                        t.set_creator("DelugeFS");
-                        lt.set_piece_hashes(t, self.tmp)
-                        tdata = t.generate()
-                        prev = lt.bdecode(lt.bencode(tdata))['info']['name']
-                        del tdata
-                        del t
-                        del fs
+                        prev = '00000000000000000000000000000000'
                     prev_fn = os.path.join(self.dat, prev[:2], prev)
                     if os.path.isfile(prev_fn):
                         shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
