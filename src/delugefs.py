@@ -58,10 +58,10 @@ class DelugeFS(LoggingMixIn, Operations):
     self.should_push = False
     self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,10+random.randint(0,30))
     self.last_read_file = {}
-    
+
     if not os.path.isdir(self.root):
       os.mkdir(self.root)
-    
+
     bt_start_port = random.randint(10000, 20000)
     self.bt_session = lt.session()
     self.bt_session.listen_on(bt_start_port, bt_start_port+10)
@@ -72,13 +72,13 @@ class DelugeFS(LoggingMixIn, Operations):
     print 'libtorrent listening on:', self.bt_port
     self.bt_session.add_dht_router('localhost', 10670)
     print '...is_dht_running()', self.bt_session.dht_state()
-    
+
     t = threading.Thread(target=self.__start_listening_bonjour)
     t.daemon = True
     t.start()
     print 'give me a sec to look for other peers...'
     time.sleep(2)
-    
+
     self.repo = hg.Repo(self.hgdb)
     cnfn = os.path.join(self.hgdb, '.__delugefs__', 'cluster_name')
     if create:
@@ -116,17 +116,17 @@ class DelugeFS(LoggingMixIn, Operations):
           traceback.print_exc()
           raise e
         print 'success cloning repo!'
-        
+
     for path in self.repo.hg_status()['?']:
       fn = os.path.join(self.hgdb, path)
       print 'deleting untracked file', fn
       os.remove(fn)
-    
+
     prune_empty_dirs(self.hgdb)
-    
+
     #self.repo.hg_summary()
     print '='*80
-      
+
     if not os.path.isdir(self.tmp): os.makedirs(self.tmp)
     for fn in os.listdir(self.tmp): os.remove(os.path.join(self.tmp,fn))
     if not os.path.isdir(self.dat): os.makedirs(self.dat)
@@ -172,7 +172,7 @@ class DelugeFS(LoggingMixIn, Operations):
               s.num_peers, ""))
     except Exception as e:
       traceback.print_exc()
-  
+
   def __check_for_undermirrored_files(self):
     if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
     try:
@@ -194,7 +194,7 @@ class DelugeFS(LoggingMixIn, Operations):
       if len(peer_free_space) < 2:
         print "can't do anything, since i'm the only peer!"
         return
-        
+
       fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
       print 'fs_free_space: %0.2fGB' % fs_free_space
 
@@ -242,7 +242,7 @@ class DelugeFS(LoggingMixIn, Operations):
     except Exception as e:
       traceback.print_exc()
     self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
-    
+
 
   def __monitor(self):
     while True:
@@ -251,7 +251,7 @@ class DelugeFS(LoggingMixIn, Operations):
       self.__write_active_torrents()
       self.__check_for_undermirrored_files()
 
-  
+
   def __load_local_torrents(self):
     #print 'self.hgdb', self.hgdb
     for root, dirs, files in os.walk(self.hgdb):
@@ -301,7 +301,7 @@ class DelugeFS(LoggingMixIn, Operations):
     #  time.sleep(.1)
     print 'file created'
 
- 
+
   def __keep_pushing(self):
     while True:
       if self.should_push:
@@ -366,15 +366,15 @@ class DelugeFS(LoggingMixIn, Operations):
         self.repo.hg_pull('http://%s:%i' % (apeer.host, apeer.hg_port))
         self.repo.hg_update('tip')
         return 'pulling from new peer', apeer
-      
+
 
 
   def get_hg_port(self):
     return self.hg_port
-    
+
   def get_bt_port(self):
     return self.bt_port
-    
+
   def you_should_pull_from(self, peer_name):
     if peer_name in self.peers:
       apeer = self.peers[peer_name]
@@ -383,7 +383,7 @@ class DelugeFS(LoggingMixIn, Operations):
       return 'i updated, thanks!'
     else:
       return "i don't know you, "+ peer_name
-      
+
   def please_mirror(self, path):
     try:
       print 'please_mirror', path
@@ -397,7 +397,7 @@ class DelugeFS(LoggingMixIn, Operations):
     except:
       traceback.print_exc()
       return False
-    
+
   def please_stop_mirroring(self, path):
    try:
     print 'got please_stop_mirroring', path
@@ -405,10 +405,10 @@ class DelugeFS(LoggingMixIn, Operations):
       if (datetime.datetime.now()-self.last_read_file[path]).seconds < 60*60*6:
         print 'reject - too soon since we last used it', path
         return False
-    
+
     print 'i would have stopped', path
     return False
-        
+
     h = self.bt_handles[path]
     if h:
       uid = h.get_torrent_info().name()
@@ -421,8 +421,8 @@ class DelugeFS(LoggingMixIn, Operations):
    except:
      traceback.print_exc()
      return False
-    
-   
+
+
   def get_active_info_hashes(self):
     self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
     active_info_hashes = []
@@ -435,11 +435,11 @@ class DelugeFS(LoggingMixIn, Operations):
         del self.bt_handles[k]
     print 'active_info_hashes', active_info_hashes
     return active_info_hashes
-      
+
   def get_free_space(self):
     f = os.statvfs(self.root)
     return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
-  
+
   def __register(self):
     #return
 
@@ -451,8 +451,8 @@ class DelugeFS(LoggingMixIn, Operations):
     server.register_function(self.get_active_info_hashes)
     server.register_function(self.get_free_space)
     server.register_function(self.please_stop_mirroring)
-    
-    
+
+
     t = threading.Thread(target=server.serve)
     t.daemon = True
     t.start()
@@ -462,10 +462,10 @@ class DelugeFS(LoggingMixIn, Operations):
     t.start()
     print 'http://localhost:%i/' % self.hg_port
 
-    
+
     print 'registering bonjour listener...'
     self.bj_name = self.name+'__'+uuid.uuid4().hex
-    bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp", 
+    bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
                                              port=self.rpc_port, callBack=self.__bonjour_register_callback)
     try:
       while True:
@@ -536,7 +536,7 @@ class DelugeFS(LoggingMixIn, Operations):
     return ret
 
   getxattr = None
-  
+
   def link(self, target, source):
     with self.rwlock:
       if path.startswith('/.__delugefs__'): return 0
@@ -617,8 +617,8 @@ class DelugeFS(LoggingMixIn, Operations):
       self.open_files[path] = tmp
       return os.open(os.path.join(self.tmp, tmp), flags)
       return 0
-  
-    
+
+
   def readdir(self, path, fh):
     with self.rwlock:
       return ['.', '..'] + [x for x in os.listdir(self.hgdb+path) if x!=".__delugefs_dir__" and x!='.hg']
@@ -637,7 +637,7 @@ class DelugeFS(LoggingMixIn, Operations):
         priorities = h.piece_priorities()
         #h.prioritize_pieces([0 for x in priorities])
       return ret
-    
+
   def finalize(self, path, uid):
     #print 'finalize', path, uid
     try:
@@ -647,7 +647,7 @@ class DelugeFS(LoggingMixIn, Operations):
       except:
         traceback.print_exc()
         return
-        
+
       #print tmp_fn, st_size
       lt.add_files(fs, tmp_fn, st_size)
       t = lt.create_torrent(fs)
@@ -659,7 +659,7 @@ class DelugeFS(LoggingMixIn, Operations):
         f.write(lt.bencode(tdata))
       #print 'wrote', self.hgdb+path
       dat_dir = os.path.join(self.dat, uid[:2])
-      if not os.path.isdir(dat_dir): 
+      if not os.path.isdir(dat_dir):
         try: os.mkdir(dat_dir)
         except: pass
       os.rename(tmp_fn, os.path.join(dat_dir, uid))
@@ -672,7 +672,7 @@ class DelugeFS(LoggingMixIn, Operations):
     except Exception as e:
       traceback.print_exc()
       raise e
-      
+
   def __add_torrent(self, torrent, path):
     uid = torrent['info']['name']
     info = lt.torrent_info(torrent)
@@ -684,7 +684,7 @@ class DelugeFS(LoggingMixIn, Operations):
     print 'added', uid
     self.bt_handles[path] = h
 
-    
+
   def rename(self, old, new):
     with self.rwlock:
       if old.startswith('/.__delugefs__'): return 0
@@ -720,7 +720,7 @@ class DelugeFS(LoggingMixIn, Operations):
       if src.startswith('/.__delugefs__'): return 0
       ret = os.symlink(source, target)
       return ret
-        
+
 
   def truncate(self, path, length, fh=None):
     with self.rwlock:
@@ -803,12 +803,12 @@ if __name__ == '__main__':
       if k:
         config[k] = s.encode(FS_ENCODE)
         k = None
-        
+
   if not 'cluster' in config:
     usage('cluster name not set')
   if not 'root' in config:
     usage('root not set')
-  
+
 
   server = DelugeFS(config['cluster'], config['root'], create=config.get('create'))
   if 'mount' in config:
@@ -816,4 +816,3 @@ if __name__ == '__main__':
   else:
     while True:
       time.sleep(60)
-
