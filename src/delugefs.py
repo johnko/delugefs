@@ -62,8 +62,15 @@ class DelugeFS(LoggingMixIn, Operations):
 
         self.bt_session = lt.session()
         self.bt_session.listen_on(bt_start_port, bt_start_port+10)
+        pe_settings = lt.pe_settings()
+        pe_enc_policy = {0:lt.enc_policy.forced, 1:lt.enc_policy.enabled, 2:lt.enc_policy.disabled}
+        pe_settings.out_enc_policy = lt.enc_policy(pe_enc_policy[0])
+        pe_settings.in_enc_policy = lt.enc_policy(pe_enc_policy[0])
+        pe_enc_level = {0:lt.enc_level.plaintext, 1:lt.enc_level.rc4, 2:lt.enc_level.both}
+        pe_settings.allowed_enc_level = lt.enc_level(pe_enc_level[1])
+        self.bt_session.set_pe_settings(pe_settings)
         self.bt_port = self.bt_session.listen_port()
-        self.bt_session.start_lsd()
+        self.bt_session.start_lsd() # TODO should disable this on public networks, but need to manually add peers
         self.bt_session.start_dht()
         self.repo = None
         print 'libtorrent listening on:', self.bt_port
