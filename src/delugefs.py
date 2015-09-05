@@ -482,7 +482,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.open_files[path] = tmp
             with open(self.repodb+path,'wb') as f:
                 pass
-            self.repo.add(self.repodb+path) # blank file
+            #self.repo.add(self.repodb+path) # blank file
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -589,10 +589,13 @@ class DelugeFS(LoggingMixIn, Operations):
             tmp = uuid.uuid4().hex
             if os.path.isfile(fn):
                 with open(fn, 'rb') as f:
-                    prev = lt.bdecode(f.read())['info']['name']
-                    prev_fn = os.path.join(self.dat, prev[:2], prev)
-                    if os.path.isfile(prev_fn):
-                        shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
+                    try:
+                        prev = lt.bdecode(f.read())['info']['name']
+                        prev_fn = os.path.join(self.dat, prev[:2], prev)
+                        if os.path.isfile(prev_fn):
+                            shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
+                    except:
+                        print '... not valid bdecode', path
             self.open_files[path] = tmp
             return os.open(os.path.join(self.tmp, tmp), flags)
             return 0
@@ -632,6 +635,7 @@ class DelugeFS(LoggingMixIn, Operations):
             #print tdata
             with open(self.repodb+path, 'wb') as f:
                 f.write(lt.bencode(tdata))
+            self.repo.add(self.repodb+path)
             #print 'wrote', self.repodb+path
             dat_dir = os.path.join(self.dat, uid[:2])
             if not os.path.isdir(dat_dir):
