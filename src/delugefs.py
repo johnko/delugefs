@@ -367,7 +367,9 @@ class DelugeFS(LoggingMixIn, Operations):
             #print 'resolve_callback', sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord
             sname = fullname[:fullname.index('.')]
             resolved.append(True)
-            apeer = Peer(sname, hosttarget, port)
+            # strip '.local.' from host
+            shost = hosttarget.split('.')[0]
+            apeer = Peer(sname, shost, port)
             self.peers[sname] = apeer
             print 'self.peers', self.peers
             if self.repo:
