@@ -2,6 +2,7 @@
 
 ZFS_DATASET="tank/delugefs"
 CLUSTER_ID="${1}"
+shift
 if [ "x" != "x${1}" ]; then
     ZFS_DATASET="${1}"
     shift
