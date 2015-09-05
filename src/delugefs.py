@@ -304,7 +304,8 @@ class DelugeFS(LoggingMixIn, Operations):
         while True:
             if self.should_push:
                 for peer in self.peers.values():
-                    self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name, 'master:refs/heads/tomerge')
+                    self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name),
+                                    'master:refs/heads/tomerge')
                 self.should_push = False
             time.sleep(10)
 
@@ -360,8 +361,8 @@ class DelugeFS(LoggingMixIn, Operations):
             self.peers[sname] = apeer
             print 'self.peers', self.peers
             if self.repo:
-                self.repo.hg_pull('http://%s:%i' % (apeer.host, apeer.hg_port))
-                self.repo.hg_update('tip')
+                self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name),
+                            'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
                 return 'pulling from new peer', apeer
 
     def please_mirror(self, path):
