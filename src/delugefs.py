@@ -589,10 +589,7 @@ class DelugeFS(LoggingMixIn, Operations):
             tmp = uuid.uuid4().hex
             if os.path.isfile(fn):
                 with open(fn, 'rb') as f:
-                    try:
-                        prev = lt.bdecode(f.read())['info']['name']
-                    except:
-                        prev = '00000000000000000000000000000000'
+                    prev = lt.bdecode(f.read())['info']['name']
                     prev_fn = os.path.join(self.dat, prev[:2], prev)
                     if os.path.isfile(prev_fn):
                         shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
