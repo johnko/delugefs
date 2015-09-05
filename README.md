@@ -11,6 +11,13 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 - possibility to manually add external network peer
 - FUSE mounted allow_other
 
+# This Fork's Implemented Changes
+
+Tick if tested:
+
+- [ ] specify BitTorrent start port number with --port
+
+
 # Overview
 
 DelugeFS is a distributed filesystem [@keredson](https://github.com/keredson) implemented as a proof of concept of several ideas he's had over the past few years.

@@ -46,7 +46,7 @@ class Peer(object):
         self.free_space = self.server.get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, create=False):
+    def __init__(self, name, root, btport, create=False):
         self.name = name
         self.root = os.path.realpath(root)
         if REPO_TYPE == 'git':
@@ -68,7 +68,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.root):
             os.mkdir(self.root)
 
-        bt_start_port = random.randint(10000, 20000)
+        bt_start_port = btport
         self.bt_session = lt.session()
         self.bt_session.listen_on(bt_start_port, bt_start_port+10)
         self.bt_port = self.bt_session.listen_port()
@@ -814,9 +814,11 @@ if __name__ == '__main__':
         usage('cluster name not set')
     if not 'root' in config:
         usage('root not set')
+    if not 'port' in config:
+        btport = random.randint(10000, 20000)
 
 
-    server = DelugeFS(config['cluster'], config['root'], create=config.get('create'))
+    server = DelugeFS(config['cluster'], config['root'], btport, create=config.get('create'))
     if 'mount' in config:
         fuse = FUSE(server, config['mount'], foreground=True)
     else:
