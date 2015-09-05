@@ -2,12 +2,13 @@
 
 ZFS_DATASET="tank/delugefs"
 CLUSTER_ID="${1}"
-if [ "x" != "x${2}" ]; then
-    ZFS_DATASET="${2}"
+if [ "x" != "x${1}" ]; then
+    ZFS_DATASET="${1}"
     shift
 fi
-if [ "x--create" == "x${2}" ]; then
-    CREATE="--create"
+if [ "x--create" == "x${1}" ]; then
+    CREATE="--create --port 6881"
+    shift
 fi
 PYSCRIPT=/usr/home/delugefs/delugefs.py
 
@@ -57,7 +58,7 @@ su -l delugefs -c "${PYSCRIPT} \
     ${CREATE} \
     ${MOUNT} \
     --id ${CLUSTER_ID} \
-    --root /${ZFS_DATASET}/.${CLUSTER_ID}db"
+    --root /${ZFS_DATASET}/.${CLUSTER_ID}db $*"
 
 # reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
 # and peer pubkeys to /usr/home/delugefs/.ssh/authorized_keys2
