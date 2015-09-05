@@ -794,6 +794,8 @@ if __name__ == '__main__':
 
     server = DelugeFS(config['cluster'], config['root'], btport, create=config.get('create'))
     if 'mount' in config:
+        if not os.path.exists(config['mount']):
+            os.mkdir(config['mount'])
         fuse = FUSE(server, config['mount'], foreground=True)
     else:
         while True:
