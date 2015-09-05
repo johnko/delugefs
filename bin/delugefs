@@ -2,6 +2,10 @@
 
 ZFS_DATASET="tank/delugefs"
 CLUSTER_ID="${1}"
+if [ "x" != "x${2}" ]; then
+    ZFS_DATASET="${2}"
+    shift
+fi
 if [ "x--create" == "x${2}" ]; then
     CREATE="--create"
 fi
@@ -34,8 +38,16 @@ if ! id 1007 > /dev/null 2> /dev/null ; then
     fi
 fi
 
+
+if [ ! -d /usr/home/delugefs ]; then
+    install -d -m 755 -o delugefs /usr/home/delugefs
+fi
+if [ ! -e /usr/home/delugefs/.ssh/id_ed25519 ]; then
+    su -l delugefs -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
+fi
 install -m 644 -o delugefs ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
 install -m 755 -o delugefs ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
+
 
 if ! mount | grep "/tank/${CLUSTER_ID}" > /dev/null 2> /dev/null ; then
     MOUNT="--mount /tank/${CLUSTER_ID}"
@@ -46,3 +58,6 @@ su -l delugefs -c "${PYSCRIPT} \
     ${MOUNT} \
     --id ${CLUSTER_ID} \
     --root /${ZFS_DATASET}/.${CLUSTER_ID}db"
+
+# reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
+# and peer pubkeys to /usr/home/delugefs/.ssh/authorized_keys2
