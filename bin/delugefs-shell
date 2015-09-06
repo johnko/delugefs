@@ -6,7 +6,7 @@ elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-receive-pack' > /dev/null 2> /d
     git-shell -c "${SSH_ORIGINAL_COMMAND}"
     GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-receive-pack ;;' | sed "s;^';;" | sed "s;'$;;"`
     cd ${GITPATH}
-    git merge tomerge > /dev/null 2> /dev/null
+    git merge -m "merge after a push from peer" tomerge > /dev/null 2> /dev/null
     git branch -d tomerge > /dev/null 2> /dev/null
 else
     echo "SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
