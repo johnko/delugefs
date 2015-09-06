@@ -299,8 +299,8 @@ class DelugeFS(LoggingMixIn, Operations):
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
         #h.set_sequential_download(True)
         for peer in self.peers.values():
-            print 'adding peer:', (peer.addr, peer.port)
-            h.connect_peer(('127.0.0.1', peer.bt_port), 0)
+            print 'adding peer:', (peer.addr, peer.bt_port)
+            h.connect_peer((peer.addr, peer.bt_port), 0)
         print 'added ', path
         self.bt_handles[path] = h
         self.bt_in_progress.add(path)
