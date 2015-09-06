@@ -336,7 +336,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 if self.should_push == False:
                     for peer in self.peers.values():
                         self.pushed_to[peer] = False
-            time.sleep(10)
+            time.sleep(1)
 
     def __start_listening_bonjour(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
