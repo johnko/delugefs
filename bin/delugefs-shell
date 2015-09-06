@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# CLUSTER_ID="${1}" ??????
+
+echo "SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
+echo "1:                    ${1}" >>${HOME}/remote-history
+
+# if valid git-shell command
+#     git-shell -c "${SSH_ORIGINAL_COMMAND}"
+#     cd /usr/home/delugefs/symlinks/${CLUSTER_ID}
+#     git merge tomerge
+# fi

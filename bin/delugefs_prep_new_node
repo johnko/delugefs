@@ -10,7 +10,7 @@ cat <<EOF
 Add this to an existing node's /usr/home/delugefs/.ssh/authorized_keys2 :
 EOF
 
-echo "command=\"git-shell -c \\\"\$SSH_ORIGINAL_COMMAND\\\"\" `cat /usr/home/delugefs/.ssh/id_ed25519.pub`"
+echo "command=\"/usr/home/delugefs/delugefs-shell \$SSH_ORIGINAL_COMMAND\" `cat /usr/home/delugefs/.ssh/id_ed25519.pub`"
 
 echo "Press Enter to attemp SSH connection"
 read
