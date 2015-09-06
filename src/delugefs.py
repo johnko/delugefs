@@ -43,6 +43,7 @@ class Peer(object):
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, create=False):
         self.name = name
+        self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.root = os.path.realpath(root)
         self.repodb = os.path.join(self.root, u'gitdb')
         self.tmp = os.path.join(self.root, 'tmp')
@@ -357,10 +358,9 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            if self.bj_name:
-                if fullname.startswith(self.bj_name):
-                    #print 'ignoring my own service'
-                    return
+            if fullname.startswith(self.bj_name):
+                #print 'ignoring my own service'
+                return
             if not (fullname.startswith(self.name+'__') and '._delugefs._tcp.' in fullname):
                 #print 'ignoring unrelated service', fullname
                 return
@@ -445,7 +445,6 @@ class DelugeFS(LoggingMixIn, Operations):
         #TODO replace t.start()
 
         print 'registering bonjour listener...'
-        self.bj_name = self.name+'__'+uuid.uuid4().hex
         bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
                                                 port=self.bt_port, callBack=self.__bonjour_register_callback)
         try:
