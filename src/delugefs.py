@@ -311,12 +311,31 @@ class DelugeFS(LoggingMixIn, Operations):
 
 
     def __keep_pushing(self):
+        self.pushed_to = {}
         while True:
             if self.should_push:
+                # set default to not pushed if not exist
                 for peer in self.peers.values():
-                    self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name),
-                                    'master:refs/heads/tomerge')
+                    if not peer in self.pushed_to:
+                        self.pushed_to[peer] = False
+                # do the push
+                for peer in self.peers.values():
+                    if self.pushed_to[peer] == False:
+                        if self.repo is not None:
+                            print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (apeer.host, apeer.git_port, self.name)
+                            self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name),
+                                            'master:refs/heads/tomerge')
+                            self.pushed_to[peer] = True
+                # set to false...
                 self.should_push = False
+                # but if any are true, set to keep_pushing
+                for peer in self.peers.values():
+                    if self.pushed_to[peer] == False:
+                        self.should_push = True
+                # if all set to false, reset pushed_to
+                if self.should_push == False:
+                    for peer in self.peers.values():
+                        self.pushed_to[peer] = False
             time.sleep(10)
 
     def __start_listening_bonjour(self):
@@ -373,6 +392,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.peers[sname] = apeer
             print 'self.peers', self.peers
             if self.repo is not None:
+                print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.git_port, self.name, apeer.host)
                 self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name),
                             'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
                 return 'pulling from new peer', apeer
