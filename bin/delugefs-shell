@@ -2,7 +2,9 @@
 
 if echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-upload-pack' > /dev/null 2> /dev/null ; then
     git-shell -c "${SSH_ORIGINAL_COMMAND}"
-    GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-upload-pack ;;'`
+elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-receive-pack' > /dev/null 2> /dev/null ; then
+    git-shell -c "${SSH_ORIGINAL_COMMAND}"
+    GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-receive-pack ;;'`
     cd ${GITPATH}
     git merge tomerge
     git branch -d tomerge
