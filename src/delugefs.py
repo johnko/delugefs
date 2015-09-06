@@ -588,7 +588,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(fn, flags)
             # read and write below
             if path.startswith('/.__delugefs__'): return 0
-            if self.open_files[path] is not None:
+            if path in self.open_files:
                 tmp = self.open_files[path]
             else:
                 tmp = uuid.uuid4().hex
@@ -706,8 +706,9 @@ class DelugeFS(LoggingMixIn, Operations):
     def truncate(self, path, length, fh=None):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            with open(os.path.join(self.tmp, self.open_files[path]), 'r+') as f:
-                f.truncate(length)
+            if path in self.open_files:
+                with open(os.path.join(self.tmp, self.open_files[path]), 'r+') as f:
+                    f.truncate(length)
 
 #    utimens = os.utime
 
