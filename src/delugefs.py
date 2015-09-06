@@ -357,7 +357,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            if fullname == self.bj_name:
+            if fullname.startswith(self.bj_name):
                 #print 'ignoring my own service'
                 return
             if not (fullname.startswith(self.name+'__') and '._delugefs._tcp.' in fullname):
