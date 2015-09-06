@@ -36,7 +36,7 @@ class Peer(object):
         self.service_name = service_name
         self.host = host
         self.addr = socket.gethostbyname(host)
-        self.port = port
+        self.bt_port = port
         self.git_port = 22
         #TODO replace self.free_space = self.server.get_free_space()
 
@@ -48,7 +48,6 @@ class DelugeFS(LoggingMixIn, Operations):
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
         self.shadow = os.path.join(self.root, u'shadow')
-        self.rpc_port = random.randint(10000, 20000)
         self.git_port = 22
         self.peers = {}
         self.bt_handles = {}
@@ -155,9 +154,9 @@ class DelugeFS(LoggingMixIn, Operations):
         t.daemon = True
         t.start()
 
-        t = threading.Thread(target=self.__monitor)
-        t.daemon = True
-        t.start()
+        #TODO replace t = threading.Thread(target=self.__monitor)
+        #TODO replace t.daemon = True
+        #TODO replace t.start()
 
 
     def __write_active_torrents(self):
@@ -256,7 +255,7 @@ class DelugeFS(LoggingMixIn, Operations):
         while True:
             time.sleep(random.randint(3,7))
             #print '='*80
-            self.__write_active_torrents()
+            #TODO replace self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
 
 
@@ -358,7 +357,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            if port==self.rpc_port:
+            if fullname == self.bj_name:
                 #print 'ignoring my own service'
                 return
             if not (fullname.startswith(self.name+'__') and '._delugefs._tcp.' in fullname):
@@ -447,7 +446,7 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'registering bonjour listener...'
         self.bj_name = self.name+'__'+uuid.uuid4().hex
         bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
-                                                port=self.rpc_port, callBack=self.__bonjour_register_callback)
+                                                port=self.bt_port, callBack=self.__bonjour_register_callback)
         try:
             while True:
                 ready = select.select([bjservice], [], [])
@@ -458,7 +457,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __bonjour_register_callback(self, sdRef, flags, errorCode, name, regtype, domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.rpc_port
+            print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.bt_port
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
