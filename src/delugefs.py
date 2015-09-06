@@ -372,7 +372,7 @@ class DelugeFS(LoggingMixIn, Operations):
             apeer = Peer(sname, shost, port)
             self.peers[sname] = apeer
             print 'self.peers', self.peers
-            if self.repo:
+            if self.repo is not None:
                 self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name),
                             'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
                 return 'pulling from new peer', apeer
@@ -588,7 +588,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(fn, flags)
             # read and write below
             if path.startswith('/.__delugefs__'): return 0
-            if self.open_files[path]:
+            if self.open_files[path] is not None:
                 tmp = self.open_files[path]
             else:
                 tmp = uuid.uuid4().hex
