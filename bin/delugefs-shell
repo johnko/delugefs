@@ -1,12 +1,12 @@
 #!/bin/sh
 
-# CLUSTER_ID="${1}" ??????
-
-echo "SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
-echo "1:                    ${1}" >>${HOME}/remote-history
-
-# if valid git-shell command
-#     git-shell -c "${SSH_ORIGINAL_COMMAND}"
-#     cd /usr/home/delugefs/symlinks/${CLUSTER_ID}
-#     git merge tomerge
-# fi
+if echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-upload-pack' > /dev/null 2> /dev/null ; then
+    git-shell -c "${SSH_ORIGINAL_COMMAND}"
+    GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-upload-pack ;;'`
+    cd ${GITPATH}
+    git merge tomerge
+    git branch -d tomerge
+else
+    echo "SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
+    echo "1:                    ${1}" >>${HOME}/remote-history
+fi
