@@ -322,7 +322,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 for peer in self.peers.values():
                     if self.pushed_to[peer] == False:
                         if self.repo is not None:
-                            print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (apeer.host, apeer.git_port, self.name)
+                            print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (peer.host, peer.git_port, self.name)
                             self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name),
                                             'master:refs/heads/tomerge')
                             self.pushed_to[peer] = True
