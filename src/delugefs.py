@@ -39,10 +39,6 @@ class Peer(object):
         self.bt_port = None
         self.ssh_port = None
         #TODO replace self.free_space = self.server.get_free_space()
-    def set_bt_port(self, port):
-        self.bt_port = port
-    def set_ssh_port(self, port):
-        self.ssh_port = port
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, create=False):
@@ -312,8 +308,9 @@ class DelugeFS(LoggingMixIn, Operations):
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
         #h.set_sequential_download(True)
         for peer in self.peers.values():
-            print 'adding peer:', (peer.addr, peer.bt_port)
-            h.connect_peer((peer.addr, peer.bt_port), 0)
+            if peer.bt_port is not None:
+                print 'adding peer:', (peer.addr, peer.bt_port)
+                h.connect_peer((peer.addr, peer.bt_port), 0)
         print 'added ', path
         self.bt_handles[path] = h
         self.bt_in_progress.add(path)
@@ -420,9 +417,9 @@ class DelugeFS(LoggingMixIn, Operations):
             else:
                 apeer = self.peers[sname]
             if '._ssh._tcp.' in fullname:
-                apeer.set_ssh_port(port)
+                apeer.ssh_port = port
             if '._delugefs._tcp.' in fullname:
-                apeer.set_bt_port(port)
+                apeer.bt_port = port
 
             # save apeer to peers after modifying above
             self.peers[sname] = apeer
