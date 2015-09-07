@@ -36,6 +36,18 @@ Key insights this FS proves:
 - All of these projects have Python bindings!
 - The key node in a distributed filesystem is the _disk_, not the machine. Everything above the disk is network topology.
 
+# Requirements
+
+FreeBSD:
+
+- kldload fuse
+- pkg install python27 libffi indexinfo gettext-runtime py27-setuptools27
+- pkg install fusefs-libs
+- pkg install py27-pybonjour mDNSResponder
+- pkg install py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu boost-python-libs
+- pkg install py27-sh
+
+
 # Current Status
 
 **HIGHLY EXPERIMENTAL! -- PROOF OF CONCEPT ONLY -- DO NOT USE FOR ANY CRITICAL DATA AT THIS POINT!**
@@ -84,9 +96,7 @@ To replicate a file:
 The first time the first node is ever brought up:
 
 ```
-server1$ ./delugefs.py --create --cluster bigstore \
-    --root /mnt/disk1/.bigstoredb \
-    --mount ~/bigstore
+server1$ delugefs bigstore tank/delugefs --create
 ```
 
 All future invocations would omit the "--create".
@@ -103,9 +113,7 @@ server1$ ./delugefs.py --cluster bigstore \
 To bring up an additional node on a different machine:
 
 ```
-server2$ ./delugefs.py --cluster bigstore \
-    --root /mnt/disk3/.bigstoredb \
-    --mount ~/bigstore
+server2$ delugefs bigstore tank/delugefs
 ```
 
 That's all there is to it!
