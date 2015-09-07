@@ -2,8 +2,7 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 
 # This Fork's Planned Changes
 
-- force SSH command in authorized_keys2 after "git push", "git merge tomerge" ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
-- change the "keep_pushing" loop to event driven
+- change the "keep_pushing" loop to event driven?? but loses separate thread
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
@@ -16,6 +15,7 @@ Tick if tested:
 - [ ] specify BitTorrent start port number with --port
 - [ ] Git instead of Mercurial
 - [ ] SSH prep-node script to bootstrap id_ed25519.pub and known_hosts
+- [ ] force SSH command in authorized_keys2 after "git push", "git merge tomerge" ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
 
 # Overview
 
