@@ -7,6 +7,7 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
 - FUSE mounted allow_other
+- Known Issues: read a file from A, make changes on that file from B, read file from A doesn't see changes
 
 # This Fork's Implemented Changes
 
