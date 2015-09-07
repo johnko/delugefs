@@ -688,7 +688,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def release(self, path, fh):
         with self.rwlock:
             ret = os.close(fh)
-            if LOGLEVEL > 2: print 'ret', ret, path
+            if LOGLEVEL > 3: print 'ret', ret, path
             if path in self.open_files:
                 self.finalize(path, self.open_files[path])
                 del self.open_files[path]
