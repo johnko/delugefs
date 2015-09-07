@@ -8,7 +8,7 @@ if [ "x" != "x${1}" ]; then
     shift
 fi
 if [ "x--create" == "x${1}" ]; then
-    CREATE="--create --port 6881"
+    CREATE="--create --btport 6881"
     shift
 fi
 PYSCRIPT=/usr/home/delugefs/delugefs.py

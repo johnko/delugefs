@@ -32,16 +32,20 @@ FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
 
 class Peer(object):
-    def __init__(self, service_name, host, port):
+    def __init__(self, service_name, host):
         self.service_name = service_name
         self.host = host
         self.addr = socket.gethostbyname(host)
-        self.bt_port = port
-        self.git_port = 22
+        self.bt_port = None
+        self.ssh_port = None
         #TODO replace self.free_space = self.server.get_free_space()
+    def set_bt_port(port):
+        self.bt_port = port
+    def set_ssh_port(port):
+        self.ssh_port = port
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, create=False):
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.root = os.path.realpath(root)
@@ -49,7 +53,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
         self.shadow = os.path.join(self.root, u'shadow')
-        self.git_port = 22
+        self.ssh_port = sshport
         self.peers = {}
         self.bt_handles = {}
         self.bt_in_progress = set()
@@ -77,6 +81,9 @@ class DelugeFS(LoggingMixIn, Operations):
         self.bt_session.add_dht_router('localhost', 10670)
         print '...is_dht_running()', self.bt_session.dht_state()
 
+        t = threading.Thread(target=self.__start_listening_bonjour_ssh)
+        t.daemon = True
+        t.start()
         t = threading.Thread(target=self.__start_listening_bonjour)
         t.daemon = True
         t.start()
@@ -117,7 +124,8 @@ class DelugeFS(LoggingMixIn, Operations):
                 try:
                     apeer = self.peers[iter(self.peers).next()]
                     if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
-                    self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name), self.repodb)
+                    if apeer.ssh_port is not None:
+                        self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name), self.repodb)
                 except Exception as e:
                     if os.path.isdir(os.path.join(self.repodb, '.git')):
                         shutil.rmtree(self.repodb)
@@ -142,6 +150,10 @@ class DelugeFS(LoggingMixIn, Operations):
         self.open_files = {}
         print 'init', self.repodb
         self.repo.status()
+
+        t = threading.Thread(target=self.__register_ssh, args=())
+        t.daemon = True
+        t.start()
 
         t = threading.Thread(target=self.__register, args=())
         t.daemon = True
@@ -322,10 +334,11 @@ class DelugeFS(LoggingMixIn, Operations):
                 for peer in self.peers.values():
                     if self.pushed_to[peer] == False:
                         if self.repo is not None:
-                            print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (peer.host, peer.git_port, self.name)
-                            self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.git_port, self.name),
-                                            'master:refs/heads/tomerge')
-                            self.pushed_to[peer] = True
+                            if peer.ssh_port is not None:
+                                print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (peer.host, peer.ssh_port, self.name)
+                                self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.ssh_port, self.name),
+                                                'master:refs/heads/tomerge')
+                                self.pushed_to[peer] = True
                 # set to false...
                 self.should_push = False
                 # but if any are true, set to keep_pushing
@@ -337,6 +350,19 @@ class DelugeFS(LoggingMixIn, Operations):
                     for peer in self.peers.values():
                         self.pushed_to[peer] = False
             time.sleep(1)
+
+    def __start_listening_bonjour_ssh(self):
+        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_ssh._tcp", callBack=self.__bonjour_browse_callback)
+        try:
+            try:
+                while True:
+                    ready = select.select([browse_sdRef], [], [])
+                    if browse_sdRef in ready[0]:
+                        pybonjour.DNSServiceProcessResult(browse_sdRef)
+            except KeyboardInterrupt:
+                    pass
+        finally:
+            browse_sdRef.close()
 
     def __start_listening_bonjour(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
@@ -380,7 +406,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if fullname.startswith(self.bj_name):
                 #print 'ignoring my own service'
                 return
-            if not (fullname.startswith(self.name+'__') and '._delugefs._tcp.' in fullname):
+            if not (fullname.startswith(self.name+'__') and ('._delugefs._tcp.' in fullname or '._ssh._tcp.' in fullname)):
                 #print 'ignoring unrelated service', fullname
                 return
             #print 'resolve_callback', sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord
@@ -388,14 +414,24 @@ class DelugeFS(LoggingMixIn, Operations):
             resolved.append(True)
             # strip '.local.' from host
             shost = hosttarget.split('.')[0]
-            apeer = Peer(sname, shost, port)
+
+            if not sname in self.peers:
+                apeer = Peer(sname, shost)
+            else:
+                apeer = self.peers[sname]
+            if '._ssh._tcp.' in fullname:
+                apeer.set_ssh_port(port)
+            if '._delugefs._tcp.' in fullname:
+                apeer.set_bt_port(port)
+
             self.peers[sname] = apeer
             print 'self.peers', self.peers
             if self.repo is not None:
-                print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.git_port, self.name, apeer.host)
-                self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.git_port, self.name),
-                            'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
-                return 'pulling from new peer', apeer
+                if apeer.ssh_port is not None:
+                    print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
+                    self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
+                                'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
+                    return 'pulling from new peer', apeer
 
     def please_mirror(self, path):
         try:
@@ -453,6 +489,18 @@ class DelugeFS(LoggingMixIn, Operations):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
 
+    def __register_ssh(self):
+        print 'registering bonjour listener for ssh...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
+                                                port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
+        try:
+            while True:
+                ready = select.select([bjservice], [], [])
+                if bjservice in ready[0]:
+                    pybonjour.DNSServiceProcessResult(bjservice)
+        except KeyboardInterrupt:
+            pass
+
     def __register(self):
         #return
 
@@ -474,6 +522,10 @@ class DelugeFS(LoggingMixIn, Operations):
                     pybonjour.DNSServiceProcessResult(bjservice)
         except KeyboardInterrupt:
             pass
+
+    def __bonjour_register_callback_ssh(self, sdRef, flags, errorCode, name, regtype, domain):
+        if errorCode == pybonjour.kDNSServiceErr_NoError:
+            print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.ssh_port
 
     def __bonjour_register_callback(self, sdRef, flags, errorCode, name, regtype, domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
@@ -810,13 +862,17 @@ if __name__ == '__main__':
         usage('cluster name not set')
     if not 'root' in config:
         usage('root not set')
-    if not 'port' in config:
+    if not 'sshport' in config:
+        sshport = 22
+    else:
+        sshport = int(config['sshport'])
+    if not 'btport' in config:
         btport = random.randint(10000, 20000)
     else:
-        btport = int(config['port'])
+        btport = int(config['btport'])
 
 
-    server = DelugeFS(config['cluster'], config['root'], btport, create=config.get('create'))
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
