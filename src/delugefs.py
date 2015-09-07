@@ -617,7 +617,7 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if LOGLEVEL > 3: print 'path in self.bt_in_progress', path in self.bt_in_progress
             if path in self.bt_in_progress:
-                if LOGLEVEL > 2: print '%s in progress' % (path)
+                if LOGLEVEL > 3: print '%s in progress' % (path)
                 h = self.bt_handles[path]
                 if not h.is_seed():
                     torrent_info = h.get_torrent_info()
@@ -635,11 +635,11 @@ class DelugeFS(LoggingMixIn, Operations):
                     #  h.piece_priority(i, 8)
                     #print 'piece_priorities set'
                     for i in range(start_index, min(end_index+1,num_pieces)):
-                        if LOGLEVEL > 2: print 'waiting for', i
+                        if LOGLEVEL > 3: print 'waiting for', i
                         for i in range(10):
                             if h.have_piece(i): break
                             time.sleep(1)
-                        if LOGLEVEL > 2: print 'we have', i
+                        if LOGLEVEL > 3: print 'we have', i
             os.lseek(fh, offset, 0)
             ret = os.read(fh, size)
             #print 'ret', ret
