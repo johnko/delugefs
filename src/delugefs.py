@@ -427,7 +427,7 @@ class DelugeFS(LoggingMixIn, Operations):
             # save apeer to peers after modifying above
             self.peers[sname] = apeer
 
-            if '._delugefs._tcp.' in fullname:
+            if '._ssh._tcp.' in fullname:
                 # only pull if delugefs detected
                 print 'self.peers', self.peers
                 if self.repo is not None:
