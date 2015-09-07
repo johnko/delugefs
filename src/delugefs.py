@@ -424,14 +424,18 @@ class DelugeFS(LoggingMixIn, Operations):
             if '._delugefs._tcp.' in fullname:
                 apeer.set_bt_port(port)
 
+            # save apeer to peers after modifying above
             self.peers[sname] = apeer
-            print 'self.peers', self.peers
-            if self.repo is not None:
-                if apeer.ssh_port is not None:
-                    print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
-                    self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
-                                'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
-                    return 'pulling from new peer', apeer
+
+            if '._delugefs._tcp.' in fullname:
+                # only pull if delugefs detected
+                print 'self.peers', self.peers
+                if self.repo is not None:
+                    if apeer.ssh_port is not None:
+                        print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
+                        self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
+                                    'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
+                        return 'pulling from new peer', apeer
 
     def please_mirror(self, path):
         try:
