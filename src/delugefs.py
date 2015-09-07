@@ -26,7 +26,7 @@ import libtorrent as lt
 import sh
 import pybonjour
 
-
+LOGLEVEL = 3
 SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
@@ -537,11 +537,11 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
-        print op, path, ('...data...' if op=='write' else args), cid
+        if LOGLEVEL > 3: print op, path, ('...data...' if op=='write' else args), cid
         if path.startswith('/.Trash'): raise FuseOSError(errno.EACCES)
         if path.endswith('/.__delugefs_dir__'): raise FuseOSError(errno.EACCES)
         ret = super(DelugeFS, self).__call__(op, path, *args)
-        print '...', cid
+        if LOGLEVEL > 3: print '...', cid
         return ret
 
     def access(self, path, mode):
@@ -615,9 +615,9 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def read(self, path, size, offset, fh):
         with self.rwlock:
-            print 'path in self.bt_in_progress', path in self.bt_in_progress
+            if LOGLEVEL > 3: print 'path in self.bt_in_progress', path in self.bt_in_progress
             if path in self.bt_in_progress:
-                print '.. in progress'
+                if LOGLEVEL > 2: print '%s in progress' % (path)
                 h = self.bt_handles[path]
                 if not h.is_seed():
                     torrent_info = h.get_torrent_info()
@@ -625,21 +625,21 @@ class DelugeFS(LoggingMixIn, Operations):
                     num_pieces = torrent_info.num_pieces()
                     start_index = offset // piece_length
                     end_index = (offset+size) // piece_length
-                    print 'pieces', start_index, end_index
+                    if LOGLEVEL > 3: print 'pieces', start_index, end_index
                     priorities = h.piece_priorities()
                     #print 'priorities', priorities
                     for i in range(start_index, min(end_index+1,num_pieces)):
                         priorities[i] = 7
                     h.prioritize_pieces(priorities)
-                    print 'priorities', priorities
+                    if LOGLEVEL > 3: print 'priorities', priorities
                     #  h.piece_priority(i, 8)
                     #print 'piece_priorities set'
                     for i in range(start_index, min(end_index+1,num_pieces)):
-                        print 'waiting for', i
+                        if LOGLEVEL > 2: print 'waiting for', i
                         for i in range(10):
                             if h.have_piece(i): break
                             time.sleep(1)
-                        print 'we have', i
+                        if LOGLEVEL > 2: print 'we have', i
             os.lseek(fh, offset, 0)
             ret = os.read(fh, size)
             #print 'ret', ret
@@ -688,7 +688,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def release(self, path, fh):
         with self.rwlock:
             ret = os.close(fh)
-            print 'ret', ret, path
+            if LOGLEVEL > 2: print 'ret', ret, path
             if path in self.open_files:
                 self.finalize(path, self.open_files[path])
                 del self.open_files[path]
@@ -699,7 +699,7 @@ class DelugeFS(LoggingMixIn, Operations):
             return ret
 
     def finalize(self, path, uid):
-        print 'finalize', path, uid
+        if LOGLEVEL > 2: print 'finalize', path, uid
         try:
             fs = lt.file_storage()
             tmp_fn = os.path.join(self.tmp, uid)
@@ -738,7 +738,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
         #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
-        print 'added', uid
+        if LOGLEVEL > 2: print 'added', uid
         self.bt_handles[path] = h
 
 
