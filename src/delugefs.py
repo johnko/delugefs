@@ -654,6 +654,8 @@ class DelugeFS(LoggingMixIn, Operations):
                     name = t['info']['name']
                     dat_fn = os.path.join(self.dat, name[:2], name)
                     if not os.path.isfile(dat_fn):
+                        # file changed, so drop open_files
+                        del self.open_files[path]
                         self.__add_torrent_and_wait(path, t)
                     self.last_read_file[path] = datetime.datetime.now()
                     return os.open(dat_fn, flags)
