@@ -39,9 +39,9 @@ class Peer(object):
         self.bt_port = None
         self.ssh_port = None
         #TODO replace self.free_space = self.server.get_free_space()
-    def set_bt_port(port):
+    def set_bt_port(self, port):
         self.bt_port = port
-    def set_ssh_port(port):
+    def set_ssh_port(self, port):
         self.ssh_port = port
 
 class DelugeFS(LoggingMixIn, Operations):
