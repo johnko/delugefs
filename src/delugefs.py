@@ -170,9 +170,9 @@ class DelugeFS(LoggingMixIn, Operations):
         t.daemon = True
         t.start()
 
-        #TODO replace t = threading.Thread(target=self.__monitor)
-        #TODO replace t.daemon = True
-        #TODO replace t.start()
+        t = threading.Thread(target=self.__monitor)
+        t.daemon = True
+        t.start()
 
 
     def __write_active_torrents(self):
@@ -188,11 +188,10 @@ class DelugeFS(LoggingMixIn, Operations):
 #                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
 #                            peer.server.please_mirror(path)
                     #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
-                    # state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating']
-                    f.write('%s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %d\n' % \
-                            ("something", s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
-                            s.num_peers, s.state))
-                            # state_str[s.state] is out of range
+                    state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
+                    f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
+                            (path, h.get_torrent_info().name(), s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
+                            s.num_peers, state_str[s.state]))
         except Exception as e:
             traceback.print_exc()
 
@@ -271,7 +270,7 @@ class DelugeFS(LoggingMixIn, Operations):
         while True:
             time.sleep(random.randint(3,7))
             #print '='*80
-            #TODO replace self.__write_active_torrents()
+            self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
 
 
@@ -890,7 +889,7 @@ if __name__ == '__main__':
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
-        fuse = FUSE(server, config['mount'], foreground=True) #, allow_other=True)
+        fuse = FUSE(server, config['mount'], foreground=True) #, direct_io=True) #, allow_other=True)
     else:
         while True:
             time.sleep(60)
