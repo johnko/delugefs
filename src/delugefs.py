@@ -670,8 +670,9 @@ class DelugeFS(LoggingMixIn, Operations):
             else:
                 tmp = uuid.uuid4().hex
                 if os.path.isfile(fn):
-                    with open(fn, 'rb') as f:
-                        prev = lt.bdecode(f.read())['info']['name']
+                    t = get_torrent_dict(fn)
+                    if t:
+                        prev = t['info']['name']
                         prev_fn = os.path.join(self.dat, prev[:2], prev)
                         if os.path.isfile(prev_fn):
                             shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
