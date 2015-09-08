@@ -144,7 +144,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.shadow): os.makedirs(self.shadow)
         self.rwlock = threading.Lock()
         self.open_files = {}
-        self.create_files = {}
         print 'init', self.repodb
         self.repo.status()
 
@@ -554,7 +553,7 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
             tmp = uuid.uuid4().hex
-            self.create_files[path] = tmp
+            self.open_files[path] = tmp
             with open(self.repodb+path,'wb') as f:
                 pass
             #self.repo.add(self.repodb+path) # blank file
@@ -573,16 +572,13 @@ class DelugeFS(LoggingMixIn, Operations):
         if path in self.open_files:
             fn = os.path.join(self.tmp, self.open_files[path])
         else:
-            if path in self.create_files:
-                fn = os.path.join(self.tmp, self.create_files[path])
-            else:
-                fn = self.repodb+path
-                if os.path.isfile(fn):
-                    if not path.startswith('/.__delugefs__'):
-                        with open(fn, 'rb') as f:
-                            torrent = lt.bdecode(f.read())
-                            torrent_info = torrent.get('info')  if torrent else None
-                            st_size = torrent_info.get('length') if torrent_info else 0
+            fn = self.repodb+path
+            if os.path.isfile(fn):
+                if not path.startswith('/.__delugefs__'):
+                    with open(fn, 'rb') as f:
+                        torrent = lt.bdecode(f.read())
+                        torrent_info = torrent.get('info')  if torrent else None
+                        st_size = torrent_info.get('length') if torrent_info else 0
         st = os.lstat(fn)
         ret = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
             'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
@@ -665,18 +661,17 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(fn, flags)
             # read and write below
             if path.startswith('/.__delugefs__'): return 0
-            if path in self.create_files:
-                tmp = self.create_files[path]
+            if path in self.open_files:
+                tmp = self.open_files[path]
             else:
                 tmp = uuid.uuid4().hex
                 if os.path.isfile(fn):
-                    t = get_torrent_dict(fn)
-                    if t:
-                        prev = t['info']['name']
+                    with open(fn, 'rb') as f:
+                        prev = lt.bdecode(f.read())['info']['name']
                         prev_fn = os.path.join(self.dat, prev[:2], prev)
                         if os.path.isfile(prev_fn):
                             shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
-            self.open_files[path] = tmp
+                self.open_files[path] = tmp
             return os.open(os.path.join(self.tmp, tmp), flags)
             return 0
 
@@ -694,8 +689,6 @@ class DelugeFS(LoggingMixIn, Operations):
             if path in self.open_files:
                 self.finalize(path, self.open_files[path])
                 del self.open_files[path]
-            if path in self.create_files:
-                del self.create_files[path]
             if path in self.bt_in_progress:
                 h = self.bt_handles[path]
                 priorities = h.piece_priorities()
