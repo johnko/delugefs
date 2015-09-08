@@ -6,20 +6,20 @@ elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-receive-pack' > /dev/null 2> /d
     git-shell -c "${SSH_ORIGINAL_COMMAND}"
     GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-receive-pack ;;' | sed "s;^';;" | sed "s;'$;;"`
     cd ${GITPATH}
-    git merge -m "merge after a push from peer ${REMOTEHOST}" tomerge > /dev/null 2> /dev/null
+    git merge -m "merge after a push from peer ${SSH_CONNECTION}" tomerge > /dev/null 2> /dev/null
     git branch -d tomerge > /dev/null 2> /dev/null
 else
-    echo "${REMOTEHOST} SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
+    echo "${SSH_CONNECTION} SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/remote-history
     if [ "x" != "x${1}" ]; then
-        echo "${REMOTEHOST} 1:                    ${1}" >>${HOME}/remote-history
+        echo "${SSH_CONNECTION} 1:                    ${1}" >>${HOME}/remote-history
     fi
     if [ "x" != "x${2}" ]; then
-        echo "${REMOTEHOST} 2:                    ${2}" >>${HOME}/remote-history
+        echo "${SSH_CONNECTION} 2:                    ${2}" >>${HOME}/remote-history
     fi
     if [ "x" != "x${3}" ]; then
-        echo "${REMOTEHOST} 3:                    ${3}" >>${HOME}/remote-history
+        echo "${SSH_CONNECTION} 3:                    ${3}" >>${HOME}/remote-history
     fi
     if [ "x" != "x${4}" ]; then
-        echo "${REMOTEHOST} 4:                    ${4}" >>${HOME}/remote-history
+        echo "${SSH_CONNECTION} 4:                    ${4}" >>${HOME}/remote-history
     fi
 fi
