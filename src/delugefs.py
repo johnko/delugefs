@@ -41,6 +41,7 @@ class Peer(object):
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, loglevel, create=False):
+        self.bootstrapping = True
         self.LOGLEVEL = loglevel
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
@@ -98,8 +99,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 raise Exception('--create specified, but %s is not empty' % self.root)
             if self.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.peers), 's' if len(self.peers)>1 else '', self.name))
-            if not os.path.exists(self.repodb):
-                os.mkdir(self.repodb)
+            if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
             self.repo.init()
             os.mkdir(os.path.join(self.repodb, '.__delugefs__'))
             with open(cnfn, 'w') as f:
@@ -120,8 +120,14 @@ class DelugeFS(LoggingMixIn, Operations):
                 try:
                     apeer = self.peers[iter(self.peers).next()]
                     if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
-                    if apeer.ssh_port is not None:
-                        self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name), self.repodb)
+                    cloned = False;
+                    while cloned == False:
+                        if apeer.ssh_port is not None:
+                            print 'clone ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name)
+                            self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name), self.repodb)
+                            cloned = True
+                        time.sleep(1)
+                    del cloned
                 except Exception as e:
                     if os.path.isdir(os.path.join(self.repodb, '.git')):
                         shutil.rmtree(self.repodb)
@@ -146,6 +152,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.open_files = {}
         print 'init', self.repodb
         self.repo.status()
+        self.bootstrapping = False
 
         t = threading.Thread(target=self.__register_ssh, args=())
         t.daemon = True
@@ -425,14 +432,16 @@ class DelugeFS(LoggingMixIn, Operations):
             self.peers[sname] = apeer
 
             if '._ssh._tcp.' in fullname:
-                # only pull if delugefs detected
-                print 'self.peers', self.peers
-                if self.repo is not None:
-                    if apeer.ssh_port is not None:
-                        print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
-                        self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
-                                    'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
-                        return 'pulling from new peer', apeer
+                # only pull if finished bootstrapping
+                if self.bootstrapping == False:
+                    # only pull if delugefs detected
+                    print 'self.peers', self.peers
+                    if self.repo is not None:
+                        if apeer.ssh_port is not None:
+                            print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
+                            self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
+                                        'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
+                            return 'pulling from new peer', apeer
 
     def please_mirror(self, path):
         try:
@@ -881,7 +890,7 @@ if __name__ == '__main__':
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
-        fuse = FUSE(server, config['mount'], foreground=True)
+        fuse = FUSE(server, config['mount'], foreground=True) #, allow_other=True)
     else:
         while True:
             time.sleep(60)
