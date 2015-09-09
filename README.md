@@ -6,7 +6,8 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
-- FUSE mounted allow_other
+- FUSE mounted allow_other requires root, but we don't want to run code as root
+- Known issue: file copy from and to mount fails, ex: cp /mnt/file1 /mnt/duplicate
 
 # This Fork's Implemented Changes
 
