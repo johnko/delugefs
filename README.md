@@ -7,6 +7,7 @@ This fork is brought to a simmer over medium-low heat, and modified to for FreeB
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
 - FUSE mounted allow_other requires root, but we don't want to run code as root
+- torrent.info.name should be sha256 of file instead of uuid.hex so we can dedup if this creates similar torrent.info.hash
 - Known issue: file copy from and to mount fails, ex: cp /mnt/file1 /mnt/duplicate
 
 # This Fork's Implemented Changes
