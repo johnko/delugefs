@@ -407,6 +407,30 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
             return False
 
+    def __please_stop_mirroring(self, path):
+        try:
+            print 'got __please_stop_mirroring', path
+            if path in self.last_read_file:
+                if (datetime.datetime.now()-self.last_read_file[path]).seconds < 60*60*6:
+                    print 'reject - too soon since we last used it', path
+                    return False
+
+            print 'i would have stopped', path
+            return False
+
+            h = self.bt_handles[path]
+            if h:
+                uid = h.get_torrent_info().name()
+                self.bt_session.remove_torrent(h)
+                fn = os.path.join(self.dat, uid[:2], uid)
+                if os.path.isfile(fn): os.remove(fn)
+                print 'stopped mirroring', path
+                return True
+            return False
+        except:
+            traceback.print_exc()
+            return False
+
     def __start_listening_bonjour(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
         try:
@@ -452,30 +476,6 @@ class DelugeFS(LoggingMixIn, Operations):
                             s.num_peers, state_str[s.state]))
         except Exception as e:
             traceback.print_exc()
-
-    def __please_stop_mirroring(self, path):
-        try:
-            print 'got __please_stop_mirroring', path
-            if path in self.last_read_file:
-                if (datetime.datetime.now()-self.last_read_file[path]).seconds < 60*60*6:
-                    print 'reject - too soon since we last used it', path
-                    return False
-
-            print 'i would have stopped', path
-            return False
-
-            h = self.bt_handles[path]
-            if h:
-                uid = h.get_torrent_info().name()
-                self.bt_session.remove_torrent(h)
-                fn = os.path.join(self.dat, uid[:2], uid)
-                if os.path.isfile(fn): os.remove(fn)
-                print 'stopped mirroring', path
-                return True
-            return False
-        except:
-            traceback.print_exc()
-            return False
 
 
     def get_active_info_hashes(self):
