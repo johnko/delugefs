@@ -495,10 +495,10 @@ class DelugeFS(LoggingMixIn, Operations):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
 
-    def __register_ssh(self):
-        print 'registering bonjour listener for ssh...'
-        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
-                        port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
+    def __register(self):
+        print 'registering bonjour listener...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
+                        port=self.bt_port, callBack=self.__bonjour_register_callback)
         try:
             while True:
                 ready = select.select([bjservice], [], [])
@@ -507,10 +507,10 @@ class DelugeFS(LoggingMixIn, Operations):
         except KeyboardInterrupt:
             pass
 
-    def __register(self):
-        print 'registering bonjour listener...'
-        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
-                        port=self.bt_port, callBack=self.__bonjour_register_callback)
+    def __register_ssh(self):
+        print 'registering bonjour listener for ssh...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
+                        port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
         try:
             while True:
                 ready = select.select([bjservice], [], [])
