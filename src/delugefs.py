@@ -228,6 +228,41 @@ class DelugeFS(LoggingMixIn, Operations):
         finally:
             resolve_sdRef.close()
 
+    def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
+        if errorCode == pybonjour.kDNSServiceErr_NoError:
+            if fullname.startswith(self.bj_name):
+                #print 'ignoring my own service'
+                return
+            if not (fullname.startswith(self.name+'__') and ('._delugefs._tcp.' in fullname or '._ssh._tcp.' in fullname)):
+                #print 'ignoring unrelated service', fullname
+                return
+            #print 'resolve_callback', sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord
+            sname = fullname[:fullname.index('.')]
+            resolved.append(True)
+            # strip '.local.' from host
+            shost = hosttarget.split('.')[0]
+            if not sname in self.peers:
+                apeer = Peer(sname, shost)
+            else:
+                apeer = self.peers[sname]
+            if '._ssh._tcp.' in fullname:
+                apeer.ssh_port = port
+            if '._delugefs._tcp.' in fullname:
+                apeer.bt_port = port
+            # save apeer to peers after modifying above
+            self.peers[sname] = apeer
+            if '._ssh._tcp.' in fullname:
+                # only pull if finished bootstrapping
+                if self.bootstrapping == False:
+                    # only pull if delugefs detected
+                    print 'self.peers', self.peers
+                    if self.repo is not None:
+                        if apeer.ssh_port is not None:
+                            print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
+                            self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
+                                        'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
+                            return 'pulling from new peer', apeer
+
     def __check_for_undermirrored_files(self):
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
         try:
@@ -403,44 +438,6 @@ class DelugeFS(LoggingMixIn, Operations):
                             s.num_peers, state_str[s.state]))
         except Exception as e:
             traceback.print_exc()
-
-    def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
-        if errorCode == pybonjour.kDNSServiceErr_NoError:
-            if fullname.startswith(self.bj_name):
-                #print 'ignoring my own service'
-                return
-            if not (fullname.startswith(self.name+'__') and ('._delugefs._tcp.' in fullname or '._ssh._tcp.' in fullname)):
-                #print 'ignoring unrelated service', fullname
-                return
-            #print 'resolve_callback', sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord
-            sname = fullname[:fullname.index('.')]
-            resolved.append(True)
-            # strip '.local.' from host
-            shost = hosttarget.split('.')[0]
-
-            if not sname in self.peers:
-                apeer = Peer(sname, shost)
-            else:
-                apeer = self.peers[sname]
-            if '._ssh._tcp.' in fullname:
-                apeer.ssh_port = port
-            if '._delugefs._tcp.' in fullname:
-                apeer.bt_port = port
-
-            # save apeer to peers after modifying above
-            self.peers[sname] = apeer
-
-            if '._ssh._tcp.' in fullname:
-                # only pull if finished bootstrapping
-                if self.bootstrapping == False:
-                    # only pull if delugefs detected
-                    print 'self.peers', self.peers
-                    if self.repo is not None:
-                        if apeer.ssh_port is not None:
-                            print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (apeer.host, apeer.ssh_port, self.name, apeer.host)
-                            self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (apeer.host, apeer.ssh_port, self.name),
-                                        'refs/heads/master:refs/remotes/%s/master' % (apeer.host))
-                            return 'pulling from new peer', apeer
 
     def please_mirror(self, path):
         try:
