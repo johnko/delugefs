@@ -393,6 +393,20 @@ class DelugeFS(LoggingMixIn, Operations):
             self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
 
+    def __please_mirror(self, path):
+        try:
+            print '__please_mirror', path
+            fn = self.repodb+path
+            torrent = get_torrent_dict(fn)
+            if torrent:
+                self.__add_torrent(torrent, path)
+                return True
+            else:
+                return False
+        except:
+            traceback.print_exc()
+            return False
+
     def __start_listening_bonjour(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
         try:
@@ -438,20 +452,6 @@ class DelugeFS(LoggingMixIn, Operations):
                             s.num_peers, state_str[s.state]))
         except Exception as e:
             traceback.print_exc()
-
-    def __please_mirror(self, path):
-        try:
-            print '__please_mirror', path
-            fn = self.repodb+path
-            torrent = get_torrent_dict(fn)
-            if torrent:
-                self.__add_torrent(torrent, path)
-                return True
-            else:
-                return False
-        except:
-            traceback.print_exc()
-            return False
 
     def please_stop_mirroring(self, path):
         try:
