@@ -172,6 +172,16 @@ class DelugeFS(LoggingMixIn, Operations):
         t.daemon = True
         t.start()
 
+    def __add_torrent(self, torrent, path):
+        uid = torrent['info']['name']
+        info = lt.torrent_info(torrent)
+        dat_file = os.path.join(self.dat, uid[:2], uid)
+        #print 'dat_file', dat_file
+        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
+        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
+        #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
+        if self.LOGLEVEL > 2: print 'added', uid
+        self.bt_handles[path] = h
 
     def __write_active_torrents(self):
         try:
@@ -731,17 +741,6 @@ class DelugeFS(LoggingMixIn, Operations):
         except Exception as e:
             traceback.print_exc()
             raise e
-
-    def __add_torrent(self, torrent, path):
-        uid = torrent['info']['name']
-        info = lt.torrent_info(torrent)
-        dat_file = os.path.join(self.dat, uid[:2], uid)
-        #print 'dat_file', dat_file
-        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
-        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
-        #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
-        if self.LOGLEVEL > 2: print 'added', uid
-        self.bt_handles[path] = h
 
     def rename(self, old, new):
         with self.rwlock:
