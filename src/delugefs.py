@@ -837,6 +837,13 @@ class DelugeFS(LoggingMixIn, Operations):
             return os.write(fh, data)
 
 
+
+
+resolved = [] # for pybonjour callbacks
+
+
+
+
 def get_torrent_dict(fn):
     if not os.path.isfile(fn): return
     with open(fn, 'rb') as f:
@@ -856,11 +863,6 @@ def prune_empty_dirs(path):
         os.rmdir(path)
     return empty
 
-
-resolved = []
-
-
-
 def usage(msg):
     print 'ERROR:', msg
     print('usage: %s [--create] --cluster <clustername> --root <root> [--mount <mountpoint>]' % sys.argv[0])
@@ -870,8 +872,9 @@ def usage(msg):
     sys.exit(1)
 
 
-if __name__ == '__main__':
 
+
+if __name__ == '__main__':
     config = {}
     k = None
     for s in sys.argv:
@@ -882,7 +885,6 @@ if __name__ == '__main__':
             if k:
                 config[k] = s.encode(FS_ENCODE)
                 k = None
-
     if not 'cluster' in config:
         usage('cluster name not set')
     if not 'root' in config:
@@ -899,8 +901,6 @@ if __name__ == '__main__':
         loglevel = 0
     else:
         loglevel = int(config['loglevel'])
-
-
     server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
