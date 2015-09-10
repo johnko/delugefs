@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 '''
-DelugeFS - A shared-nothing distributed filesystem built using Python, Bittorrent, Mercurial and Zeroconf
+DelugeFS - A shared-nothing distributed filesystem built using Python, Bittorrent, Git and Zeroconf
 Copyright (C) 2013  Derek Anderson
 Copyright (C) 2015  John Ko  git@johnko.ca
 
@@ -49,7 +49,6 @@ class DelugeFS(LoggingMixIn, Operations):
         self.repodb = os.path.join(self.root, u'gitdb')
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
-        self.shadow = os.path.join(self.root, u'shadow')
         self.ssh_port = sshport
         self.peers = {}
         self.bt_handles = {}
@@ -147,7 +146,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.tmp): os.makedirs(self.tmp)
         for fn in os.listdir(self.tmp): os.remove(os.path.join(self.tmp,fn))
         if not os.path.isdir(self.dat): os.makedirs(self.dat)
-        if not os.path.isdir(self.shadow): os.makedirs(self.shadow)
         self.rwlock = threading.Lock()
         self.open_files = {} # used to track opened files except READONLY
         print 'init', self.repodb
@@ -726,8 +724,6 @@ class DelugeFS(LoggingMixIn, Operations):
                 try: os.mkdir(dat_dir)
                 except: pass
             os.rename(tmp_fn, os.path.join(dat_dir, uid))
-            #if os.path.exists(self.shadow+path): os.remove(self.shadow+path)
-            #os.symlink(os.path.join(dat_dir, uid), self.shadow+path)
             #print 'committing', self.repodb+path
             self.repo.commit(m='wrote '+path)
             self.should_push = True
