@@ -183,6 +183,27 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 2: print 'added', uid
         self.bt_handles[path] = h
 
+    def __add_torrent_and_wait(self, path, t):
+        uid = t['info']['name']
+        info = lt.torrent_info(t)
+        dat_file = os.path.join(self.dat, uid[:2], uid)
+        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
+        if not os.path.isfile(dat_file):
+            with open(dat_file,'wb') as f:
+                pass
+        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
+        #h.set_sequential_download(True)
+        for peer in self.peers.values():
+            if peer.bt_port is not None:
+                print 'adding peer:', (peer.addr, peer.bt_port)
+                h.connect_peer((peer.addr, peer.bt_port), 0)
+        print 'added ', path
+        self.bt_handles[path] = h
+        self.bt_in_progress.add(path)
+        #while not os.path.isfile(dat_file):
+        #    time.sleep(.1)
+        print 'file created'
+
     def __write_active_torrents(self):
         try:
             with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
@@ -307,28 +328,6 @@ class DelugeFS(LoggingMixIn, Operations):
             #print '='*80
             self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
-
-    def __add_torrent_and_wait(self, path, t):
-        uid = t['info']['name']
-        info = lt.torrent_info(t)
-        dat_file = os.path.join(self.dat, uid[:2], uid)
-        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
-        if not os.path.isfile(dat_file):
-            with open(dat_file,'wb') as f:
-                pass
-        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
-        #h.set_sequential_download(True)
-        for peer in self.peers.values():
-            if peer.bt_port is not None:
-                print 'adding peer:', (peer.addr, peer.bt_port)
-                h.connect_peer((peer.addr, peer.bt_port), 0)
-        print 'added ', path
-        self.bt_handles[path] = h
-        self.bt_in_progress.add(path)
-        #while not os.path.isfile(dat_file):
-        #    time.sleep(.1)
-        print 'file created'
-
 
     def __keep_pushing(self):
         self.pushed_to = {}
