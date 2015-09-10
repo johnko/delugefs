@@ -542,11 +542,11 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
-        if self.LOGLEVEL > 3: print op, path, ('...data...' if op=='write' else args), cid
+        if self.LOGLEVEL > 4: print op, path, ('...data...' if op=='write' else args), cid
         if path.startswith('/.Trash'): raise FuseOSError(errno.EACCES)
         if path.endswith('/.__delugefs_dir__'): raise FuseOSError(errno.EACCES)
         ret = super(DelugeFS, self).__call__(op, path, *args)
-        if self.LOGLEVEL > 3: print '...', cid
+        if self.LOGLEVEL > 4: print '...', cid
         return ret
 
     def access(self, path, mode):
@@ -594,14 +594,15 @@ class DelugeFS(LoggingMixIn, Operations):
             ret['st_mode'] = ret['st_mode'] & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
         if st_size is not None:
             ret['st_size'] = st_size
+        if self.LOGLEVEL > 4: print ret
         return ret
 
     getxattr = None
 
-    def link(self, target, source):
-        with self.rwlock:
-            if path.startswith('/.__delugefs__'): return 0
-            return os.link(source, target)
+# TODO XXX FIX
+#    def link(self, target, source):
+#        with self.rwlock:
+#            return os.link(source, target)
 
     listxattr = None
 #    mknod = os.mknod
@@ -656,7 +657,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
                 if path.startswith('/.__delugefs__'):
                     return os.open(fn, flags)
-                #print '\treadonly'
+                if self.LOGLEVEL > 3: print '\treadonly'
                 t = get_torrent_dict(fn)
                 if t:
                     name = t['info']['name']
@@ -889,7 +890,7 @@ if __name__ == '__main__':
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
-        fuse = FUSE(server, config['mount'], foreground=True) #, direct_io=True) #, allow_other=True)
+        fuse = FUSE(server, config['mount'], foreground=True, debug=True) #, direct_io=True) #, allow_other=True)
     else:
         while True:
             time.sleep(60)
