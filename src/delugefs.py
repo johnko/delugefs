@@ -309,9 +309,9 @@ class DelugeFS(LoggingMixIn, Operations):
                             peer_free_space[best_peer_id] -= size
                             print 'need to rep', path, 'to', best_peer_id
                             if '__self__'==best_peer_id:
-                                self.please_mirror(path)
+                                self.__please_mirror(path)
                             else:
-                                self.peers[best_peer_id].server.please_mirror(path)
+                                self.peers[best_peer_id].server.__please_mirror(path)
                                 self.peers[best_peer_id].free_space -= size
                             break
                     if counter[uid] > 3:
@@ -430,7 +430,7 @@ class DelugeFS(LoggingMixIn, Operations):
 #                        print 'only', len(torrent_peers), 'peer for', path
 #                        if self.peers:
 #                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
-#                            peer.server.please_mirror(path)
+#                            peer.server.__please_mirror(path)
                     #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
                     state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
                     f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
@@ -439,9 +439,9 @@ class DelugeFS(LoggingMixIn, Operations):
         except Exception as e:
             traceback.print_exc()
 
-    def please_mirror(self, path):
+    def __please_mirror(self, path):
         try:
-            print 'please_mirror', path
+            print '__please_mirror', path
             fn = self.repodb+path
             torrent = get_torrent_dict(fn)
             if torrent:
@@ -511,7 +511,7 @@ class DelugeFS(LoggingMixIn, Operations):
         #return
 
         #TODO replace server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
-        #TODO replace server.register_function(self.please_mirror)
+        #TODO replace server.register_function(self.__please_mirror)
         #TODO replace server.register_function(self.get_active_info_hashes)
         #TODO replace server.register_function(self.please_stop_mirroring)
         #TODO replace t = threading.Thread(target=server.serve)
