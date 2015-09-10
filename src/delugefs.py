@@ -204,6 +204,30 @@ class DelugeFS(LoggingMixIn, Operations):
         #    time.sleep(.1)
         print 'file created'
 
+    def __bonjour_browse_callback(self, sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain):
+        #print 'browse_callback', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
+        if errorCode != pybonjour.kDNSServiceErr_NoError:
+            return
+        if not (flags & pybonjour.kDNSServiceFlagsAdd):
+            #print 'browse_callback service removed', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
+            if serviceName in self.peers:
+                del self.peers[serviceName]
+            print 'self.peers', self.peers
+            return
+        #print 'Service added; resolving'
+        resolve_sdRef = pybonjour.DNSServiceResolve(0, interfaceIndex, serviceName, regtype, replyDomain, self.__bonjour_resolve_callback)
+        try:
+            while not resolved:
+                ready = select.select([resolve_sdRef], [], [], 5)
+                if resolve_sdRef not in ready[0]:
+                    #print 'Resolve timed out'
+                    break
+                pybonjour.DNSServiceProcessResult(resolve_sdRef)
+            else:
+                resolved.pop()
+        finally:
+            resolve_sdRef.close()
+
     def __write_active_torrents(self):
         try:
             with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
@@ -379,30 +403,6 @@ class DelugeFS(LoggingMixIn, Operations):
                     pass
         finally:
             browse_sdRef.close()
-
-    def __bonjour_browse_callback(self, sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain):
-        #print 'browse_callback', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
-        if errorCode != pybonjour.kDNSServiceErr_NoError:
-            return
-        if not (flags & pybonjour.kDNSServiceFlagsAdd):
-            #print 'browse_callback service removed', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
-            if serviceName in self.peers:
-                del self.peers[serviceName]
-            print 'self.peers', self.peers
-            return
-        #print 'Service added; resolving'
-        resolve_sdRef = pybonjour.DNSServiceResolve(0, interfaceIndex, serviceName, regtype, replyDomain, self.__bonjour_resolve_callback)
-        try:
-            while not resolved:
-                ready = select.select([resolve_sdRef], [], [], 5)
-                if resolve_sdRef not in ready[0]:
-                    #print 'Resolve timed out'
-                    break
-                pybonjour.DNSServiceProcessResult(resolve_sdRef)
-            else:
-                resolved.pop()
-        finally:
-            resolve_sdRef.close()
 
     def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
