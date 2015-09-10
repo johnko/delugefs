@@ -743,7 +743,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 2: print 'added', uid
         self.bt_handles[path] = h
 
-
     def rename(self, old, new):
         with self.rwlock:
             if old.startswith('/.__delugefs__'): return 0
@@ -751,8 +750,6 @@ class DelugeFS(LoggingMixIn, Operations):
             self.repo.mv(self.repodb+old, self.repodb+new)
             self.repo.commit(m='rename '+old+' to '+new)
             self.should_push = True
-
-#    rmdir = os.rmdir
 
     def rmdir(self, path):
         with self.rwlock:
@@ -779,7 +776,6 @@ class DelugeFS(LoggingMixIn, Operations):
             if src.startswith('/.__delugefs__'): return 0
             ret = os.symlink(source, target)
             return ret
-
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:
