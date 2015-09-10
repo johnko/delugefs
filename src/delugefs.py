@@ -337,6 +337,19 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
 
+    def __get_active_info_hashes(self):
+        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
+        active_info_hashes = []
+        for k,h in self.bt_handles.items():
+            if not h: continue
+            try:
+                active_info_hashes.append(str(h.get_torrent_info().name()))
+            except:
+                traceback.print_exc()
+                del self.bt_handles[k]
+        print 'active_info_hashes', active_info_hashes
+        return active_info_hashes
+
     def __get_free_space(self):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
@@ -512,20 +525,6 @@ class DelugeFS(LoggingMixIn, Operations):
                             s.num_peers, state_str[s.state]))
         except Exception as e:
             traceback.print_exc()
-
-
-    def __get_active_info_hashes(self):
-        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
-        active_info_hashes = []
-        for k,h in self.bt_handles.items():
-            if not h: continue
-            try:
-                active_info_hashes.append(str(h.get_torrent_info().name()))
-            except:
-                traceback.print_exc()
-                del self.bt_handles[k]
-        print 'active_info_hashes', active_info_hashes
-        return active_info_hashes
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
