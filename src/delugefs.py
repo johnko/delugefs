@@ -519,13 +519,13 @@ class DelugeFS(LoggingMixIn, Operations):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
 
-    def __bonjour_register_callback_ssh(self, sdRef, flags, errorCode, name, regtype, domain):
-        if errorCode == pybonjour.kDNSServiceErr_NoError:
-            print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.ssh_port
-
     def __bonjour_register_callback(self, sdRef, flags, errorCode, name, regtype, domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
             print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.bt_port
+
+    def __bonjour_register_callback_ssh(self, sdRef, flags, errorCode, name, regtype, domain):
+        if errorCode == pybonjour.kDNSServiceErr_NoError:
+            print '...bonjour listener', name+'.'+regtype+domain, 'now listening on', self.ssh_port
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
