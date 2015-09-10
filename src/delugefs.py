@@ -275,14 +275,14 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
         try:
             print 'check_for_undermirrored_files @', datetime.datetime.now()
-            my_uids = set(self.get_active_info_hashes())
+            my_uids = set(self.__get_active_info_hashes())
             counter = collections.Counter(my_uids)
             peer_free_space = {'__self__': self.__get_free_space()}
             uid_peers = collections.defaultdict(set)
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
             for peer_id, peer in self.peers.items():
-                for s in peer.server.get_active_info_hashes():
+                for s in peer.server.__get_active_info_hashes():
                     counter[s] += 1
                     uid_peers[s].add(peer_id)
                 peer.free_space = peer.server.__get_free_space()
@@ -514,7 +514,7 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
 
 
-    def get_active_info_hashes(self):
+    def __get_active_info_hashes(self):
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
         active_info_hashes = []
         for k,h in self.bt_handles.items():
