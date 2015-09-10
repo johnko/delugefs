@@ -294,6 +294,35 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
 
+    def __keep_pushing(self):
+        self.pushed_to = {}
+        while True:
+            if self.should_push:
+                # set default to not pushed if not exist
+                for peer in self.peers.values():
+                    if not peer in self.pushed_to:
+                        self.pushed_to[peer] = False
+                # do the push
+                for peer in self.peers.values():
+                    if self.pushed_to[peer] == False:
+                        if self.repo is not None:
+                            if peer.ssh_port is not None:
+                                print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (peer.host, peer.ssh_port, self.name)
+                                self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.ssh_port, self.name),
+                                                'master:refs/heads/tomerge')
+                                self.pushed_to[peer] = True
+                # set to false...
+                self.should_push = False
+                # but if any are true, set to keep_pushing
+                for peer in self.peers.values():
+                    if self.pushed_to[peer] == False:
+                        self.should_push = True
+                # if all set to false, reset pushed_to
+                if self.should_push == False:
+                    for peer in self.peers.values():
+                        self.pushed_to[peer] = False
+            time.sleep(1)
+
     def __load_local_torrents(self):
         #print 'self.repodb', self.repodb
         for root, dirs, files in os.walk(self.repodb):
@@ -328,35 +357,6 @@ class DelugeFS(LoggingMixIn, Operations):
             #print '='*80
             self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
-
-    def __keep_pushing(self):
-        self.pushed_to = {}
-        while True:
-            if self.should_push:
-                # set default to not pushed if not exist
-                for peer in self.peers.values():
-                    if not peer in self.pushed_to:
-                        self.pushed_to[peer] = False
-                # do the push
-                for peer in self.peers.values():
-                    if self.pushed_to[peer] == False:
-                        if self.repo is not None:
-                            if peer.ssh_port is not None:
-                                print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (peer.host, peer.ssh_port, self.name)
-                                self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (peer.host, peer.ssh_port, self.name),
-                                                'master:refs/heads/tomerge')
-                                self.pushed_to[peer] = True
-                # set to false...
-                self.should_push = False
-                # but if any are true, set to keep_pushing
-                for peer in self.peers.values():
-                    if self.pushed_to[peer] == False:
-                        self.should_push = True
-                # if all set to false, reset pushed_to
-                if self.should_push == False:
-                    for peer in self.peers.values():
-                        self.pushed_to[peer] = False
-            time.sleep(1)
 
     def __start_listening_bonjour_ssh(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_ssh._tcp", callBack=self.__bonjour_browse_callback)
