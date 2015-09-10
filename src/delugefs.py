@@ -337,6 +337,10 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
 
+    def __get_free_space(self):
+        f = os.statvfs(self.root)
+        return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
+
     def __keep_pushing(self):
         self.pushed_to = {}
         while True:
@@ -522,10 +526,6 @@ class DelugeFS(LoggingMixIn, Operations):
                 del self.bt_handles[k]
         print 'active_info_hashes', active_info_hashes
         return active_info_hashes
-
-    def __get_free_space(self):
-        f = os.statvfs(self.root)
-        return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
 
     def __call__(self, op, path, *args):
         cid = random.randint(10000, 20000)
