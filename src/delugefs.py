@@ -354,8 +354,8 @@ class DelugeFS(LoggingMixIn, Operations):
             self.__write_active_torrents()
             #TODO replace self.__check_for_undermirrored_files()
 
-    def __start_listening_bonjour_ssh(self):
-        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_ssh._tcp", callBack=self.__bonjour_browse_callback)
+    def __start_listening_bonjour(self):
+        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
         try:
             try:
                 while True:
@@ -367,8 +367,8 @@ class DelugeFS(LoggingMixIn, Operations):
         finally:
             browse_sdRef.close()
 
-    def __start_listening_bonjour(self):
-        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
+    def __start_listening_bonjour_ssh(self):
+        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_ssh._tcp", callBack=self.__bonjour_browse_callback)
         try:
             try:
                 while True:
