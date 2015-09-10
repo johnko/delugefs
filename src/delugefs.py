@@ -273,15 +273,6 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
 
-
-    def __monitor(self):
-        while True:
-            time.sleep(random.randint(3,7))
-            #print '='*80
-            self.__write_active_torrents()
-            #TODO replace self.__check_for_undermirrored_files()
-
-
     def __load_local_torrents(self):
         #print 'self.repodb', self.repodb
         for root, dirs, files in os.walk(self.repodb):
@@ -310,6 +301,12 @@ class DelugeFS(LoggingMixIn, Operations):
                     self.bt_handles[fn[len(self.repodb):]] = h
         print 'self.bt_handles', self.bt_handles
 
+    def __monitor(self):
+        while True:
+            time.sleep(random.randint(3,7))
+            #print '='*80
+            self.__write_active_torrents()
+            #TODO replace self.__check_for_undermirrored_files()
 
     def __add_torrent_and_wait(self, path, t):
         uid = t['info']['name']
