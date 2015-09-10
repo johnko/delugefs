@@ -431,6 +431,30 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
             return False
 
+    def __register(self):
+        print 'registering bonjour listener...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
+                        port=self.bt_port, callBack=self.__bonjour_register_callback)
+        try:
+            while True:
+                ready = select.select([bjservice], [], [])
+                if bjservice in ready[0]:
+                    pybonjour.DNSServiceProcessResult(bjservice)
+        except KeyboardInterrupt:
+            pass
+
+    def __register_ssh(self):
+        print 'registering bonjour listener for ssh...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
+                        port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
+        try:
+            while True:
+                ready = select.select([bjservice], [], [])
+                if bjservice in ready[0]:
+                    pybonjour.DNSServiceProcessResult(bjservice)
+        except KeyboardInterrupt:
+            pass
+
     def __start_listening_bonjour(self):
         browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
         try:
@@ -494,30 +518,6 @@ class DelugeFS(LoggingMixIn, Operations):
     def get_free_space(self):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
-
-    def __register(self):
-        print 'registering bonjour listener...'
-        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
-                        port=self.bt_port, callBack=self.__bonjour_register_callback)
-        try:
-            while True:
-                ready = select.select([bjservice], [], [])
-                if bjservice in ready[0]:
-                    pybonjour.DNSServiceProcessResult(bjservice)
-        except KeyboardInterrupt:
-            pass
-
-    def __register_ssh(self):
-        print 'registering bonjour listener for ssh...'
-        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
-                        port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
-        try:
-            while True:
-                ready = select.select([bjservice], [], [])
-                if bjservice in ready[0]:
-                    pybonjour.DNSServiceProcessResult(bjservice)
-        except KeyboardInterrupt:
-            pass
 
     def __bonjour_register_callback_ssh(self, sdRef, flags, errorCode, name, regtype, domain):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
