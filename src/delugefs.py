@@ -320,11 +320,11 @@ class DelugeFS(LoggingMixIn, Operations):
                         print 'peer_free_space_list2', peer_free_space_list
                         for best_peer_id, free_space in peer_free_space_list:
                             if '__self__'==best_peer_id:
-                                if self.please_stop_mirroring(path): break
+                                if self.__please_stop_mirroring(path): break
                             else:
-                                if self.peers[best_peer_id].server.please_stop_mirroring(path): break
+                                if self.peers[best_peer_id].server.__please_stop_mirroring(path): break
                                 self.peers[best_peer_id].free_space += size
-                        print 'please_stop_mirroring', path, 'sent to', best_peer_id
+                        print '__please_stop_mirroring', path, 'sent to', best_peer_id
         except Exception as e:
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
@@ -453,9 +453,9 @@ class DelugeFS(LoggingMixIn, Operations):
         except Exception as e:
             traceback.print_exc()
 
-    def please_stop_mirroring(self, path):
+    def __please_stop_mirroring(self, path):
         try:
-            print 'got please_stop_mirroring', path
+            print 'got __please_stop_mirroring', path
             if path in self.last_read_file:
                 if (datetime.datetime.now()-self.last_read_file[path]).seconds < 60*60*6:
                     print 'reject - too soon since we last used it', path
