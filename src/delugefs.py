@@ -149,7 +149,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.dat): os.makedirs(self.dat)
         if not os.path.isdir(self.shadow): os.makedirs(self.shadow)
         self.rwlock = threading.Lock()
-        self.open_files = {}
+        self.open_files = {} # used to track opened files except READONLY
         print 'init', self.repodb
         self.repo.status()
         self.bootstrapping = False
@@ -564,7 +564,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.open_files[path] = tmp
             with open(self.repodb+path,'wb') as f:
                 pass
-            #self.repo.add(self.repodb+path) # blank file
+            #self.repo.add(self.repodb+path) # blank file, no point in adding to repo
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -591,7 +591,7 @@ class DelugeFS(LoggingMixIn, Operations):
         ret = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
             'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
         if path.startswith('/.__delugefs__'):
-            ret['st_mode'] = ret['st_mode'] & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+            ret['st_mode'] = ret['st_mode'] & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH) # no write for group/other
         if st_size is not None:
             ret['st_size'] = st_size
         if self.LOGLEVEL > 4: print ret
@@ -656,6 +656,7 @@ class DelugeFS(LoggingMixIn, Operations):
             fn = self.repodb+path
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
                 if path.startswith('/.__delugefs__'):
+                    if self.LOGLEVEL > 3: print '='*80
                     return os.open(fn, flags)
                 if self.LOGLEVEL > 3: print '\treadonly'
                 t = get_torrent_dict(fn)
@@ -682,7 +683,6 @@ class DelugeFS(LoggingMixIn, Operations):
                             shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
                 self.open_files[path] = tmp
             return os.open(os.path.join(self.tmp, tmp), flags)
-            return 0
 
 
     def readdir(self, path, fh):
@@ -787,10 +787,29 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:
+            if self.LOGLEVEL > 3: print fh
+            fn = self.repodb+path
             if path.startswith('/.__delugefs__'): return 0
-            if path in self.open_files:
+            if path in self.open_files: # file was opened in READWRITE
                 with open(os.path.join(self.tmp, self.open_files[path]), 'r+') as f:
                     f.truncate(length)
+                return 0
+            else: # file was opened in READONLY
+                if self.LOGLEVEL > 3: print '%s not in open_files' % (path)
+                # open from dat_fn
+                t = get_torrent_dict(fn)
+                if t:
+                    name = t['info']['name']
+                    if self.LOGLEVEL > 3: print '%s is %s' % (path, name)
+                    dat_fn = os.path.join(self.dat, name[:2], name)
+                    if not os.path.isfile(dat_fn):
+                        if self.LOGLEVEL > 3: print 'truncate __add_torrent_and_wait'
+                        self.__add_torrent_and_wait(path, t)
+                    self.last_read_file[path] = datetime.datetime.now()
+                    with open(dat_fn, 'r+') as f:
+                        if self.LOGLEVEL > 3: print 'truncate f.truncate'
+                        f.truncate(length)
+                    return 0
 
 #    utimens = os.utime
 
