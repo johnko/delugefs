@@ -498,7 +498,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def __register_ssh(self):
         print 'registering bonjour listener for ssh...'
         bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_ssh._tcp",
-                                                port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
+                        port=self.ssh_port, callBack=self.__bonjour_register_callback_ssh)
         try:
             while True:
                 ready = select.select([bjservice], [], [])
@@ -508,19 +508,9 @@ class DelugeFS(LoggingMixIn, Operations):
             pass
 
     def __register(self):
-        #return
-
-        #TODO replace server = jsonrpc.Server(jsonrpc.JsonRpc20(), jsonrpc.TransportTcpIp(addr=('', self.rpc_port))) #, logfunc=jsonrpc.log_file("myrpc.%i.log"%self.rpc_port)
-        #TODO replace server.register_function(self.__please_mirror)
-        #TODO replace server.register_function(self.get_active_info_hashes)
-        #TODO replace server.register_function(self.please_stop_mirroring)
-        #TODO replace t = threading.Thread(target=server.serve)
-        #TODO replace t.daemon = True
-        #TODO replace t.start()
-
         print 'registering bonjour listener...'
         bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
-                                                port=self.bt_port, callBack=self.__bonjour_register_callback)
+                        port=self.bt_port, callBack=self.__bonjour_register_callback)
         try:
             while True:
                 ready = select.select([bjservice], [], [])
