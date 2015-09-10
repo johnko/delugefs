@@ -245,10 +245,8 @@ class DelugeFS(LoggingMixIn, Operations):
             if len(peer_free_space) < 2:
                 print "can't do anything, since i'm the only peer!"
                 return
-
             fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
             print 'fs_free_space: %0.2fGB' % fs_free_space
-
             for root, dirs, files in os.walk(self.repodb):
                 #print 'root, dirs, files', root, dirs, files
                 if root.startswith(os.path.join(self.repodb, '.git')): continue
@@ -288,8 +286,6 @@ class DelugeFS(LoggingMixIn, Operations):
                                 if self.peers[best_peer_id].server.please_stop_mirroring(path): break
                                 self.peers[best_peer_id].free_space += size
                         print 'please_stop_mirroring', path, 'sent to', best_peer_id
-
-
         except Exception as e:
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
