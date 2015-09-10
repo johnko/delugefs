@@ -228,26 +228,6 @@ class DelugeFS(LoggingMixIn, Operations):
         finally:
             resolve_sdRef.close()
 
-    def __write_active_torrents(self):
-        try:
-            with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
-                for path, h in self.bt_handles.items():
-                    s = h.status()
-#                    torrent_peers = h.get_peer_info()
-#                    print 'torrent_peers', torrent_peers
-#                    if len(torrent_peers) < 1:
-#                        print 'only', len(torrent_peers), 'peer for', path
-#                        if self.peers:
-#                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
-#                            peer.server.please_mirror(path)
-                    #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
-                    state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
-                    f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
-                            (path, h.get_torrent_info().name(), s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
-                            s.num_peers, state_str[s.state]))
-        except Exception as e:
-            traceback.print_exc()
-
     def __check_for_undermirrored_files(self):
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
         try:
@@ -403,6 +383,26 @@ class DelugeFS(LoggingMixIn, Operations):
                     pass
         finally:
             browse_sdRef.close()
+
+    def __write_active_torrents(self):
+        try:
+            with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
+                for path, h in self.bt_handles.items():
+                    s = h.status()
+#                    torrent_peers = h.get_peer_info()
+#                    print 'torrent_peers', torrent_peers
+#                    if len(torrent_peers) < 1:
+#                        print 'only', len(torrent_peers), 'peer for', path
+#                        if self.peers:
+#                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
+#                            peer.server.please_mirror(path)
+                    #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
+                    state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
+                    f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
+                            (path, h.get_torrent_info().name(), s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
+                            s.num_peers, state_str[s.state]))
+        except Exception as e:
+            traceback.print_exc()
 
     def __bonjour_resolve_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, port, txtRecord):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
