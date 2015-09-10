@@ -37,7 +37,7 @@ class Peer(object):
         self.addr = socket.gethostbyname(host)
         self.bt_port = None
         self.ssh_port = None
-        #TODO replace self.free_space = self.server.get_free_space()
+        #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, loglevel, create=False):
@@ -277,7 +277,7 @@ class DelugeFS(LoggingMixIn, Operations):
             print 'check_for_undermirrored_files @', datetime.datetime.now()
             my_uids = set(self.get_active_info_hashes())
             counter = collections.Counter(my_uids)
-            peer_free_space = {'__self__': self.get_free_space()}
+            peer_free_space = {'__self__': self.__get_free_space()}
             uid_peers = collections.defaultdict(set)
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
@@ -285,7 +285,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 for s in peer.server.get_active_info_hashes():
                     counter[s] += 1
                     uid_peers[s].add(peer_id)
-                peer.free_space = peer.server.get_free_space()
+                peer.free_space = peer.server.__get_free_space()
                 peer_free_space[peer_id] = peer.free_space
             print 'counter', counter
             print 'peer_free_space', peer_free_space
@@ -523,7 +523,7 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'active_info_hashes', active_info_hashes
         return active_info_hashes
 
-    def get_free_space(self):
+    def __get_free_space(self):
         f = os.statvfs(self.root)
         return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
 
