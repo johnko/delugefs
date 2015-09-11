@@ -570,8 +570,11 @@ class DelugeFS(LoggingMixIn, Operations):
             raise FuseOSError(errno.EACCES)
         #return os.access(self.repodb+path, mode)
 
-#    chmod = os.chmod
-#    chown = os.chown
+    def chmod(self, path, mode):
+        return 0
+
+    def chown(self, path, uid, gid):
+        return 0
 
     def create(self, path, mode):
         with self.rwlock:
@@ -635,38 +638,6 @@ class DelugeFS(LoggingMixIn, Operations):
             self.should_push = True
             return ret
 
-    def read(self, path, size, offset, fh):
-        with self.rwlock:
-            if self.LOGLEVEL > 3: print 'path in self.bt_in_progress', path in self.bt_in_progress
-            if path in self.bt_in_progress:
-                if self.LOGLEVEL > 3: print '%s in progress' % (path)
-                h = self.bt_handles[path]
-                if not h.is_seed():
-                    torrent_info = h.get_torrent_info()
-                    piece_length = torrent_info.piece_length()
-                    num_pieces = torrent_info.num_pieces()
-                    start_index = offset // piece_length
-                    end_index = (offset+size) // piece_length
-                    if self.LOGLEVEL > 3: print 'pieces', start_index, end_index
-                    priorities = h.piece_priorities()
-                    #print 'priorities', priorities
-                    for i in range(start_index, min(end_index+1,num_pieces)):
-                        priorities[i] = 7
-                    h.prioritize_pieces(priorities)
-                    if self.LOGLEVEL > 3: print 'priorities', priorities
-                    #  h.piece_priority(i, 8)
-                    #print 'piece_priorities set'
-                    for i in range(start_index, min(end_index+1,num_pieces)):
-                        if self.LOGLEVEL > 3: print 'waiting for', i
-                        for i in range(10):
-                            if h.have_piece(i): break
-                            time.sleep(1)
-                        if self.LOGLEVEL > 3: print 'we have', i
-            os.lseek(fh, offset, 0)
-            ret = os.read(fh, size)
-            #print 'ret', ret
-            return ret
-
     def open(self, path, flags):
         with self.rwlock:
             fn = self.repodb+path
@@ -700,6 +671,37 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.open_files[path] = tmp
             return os.open(os.path.join(self.tmp, tmp), flags)
 
+    def read(self, path, size, offset, fh):
+        with self.rwlock:
+            if self.LOGLEVEL > 3: print 'path in self.bt_in_progress', path in self.bt_in_progress
+            if path in self.bt_in_progress:
+                if self.LOGLEVEL > 3: print '%s in progress' % (path)
+                h = self.bt_handles[path]
+                if not h.is_seed():
+                    torrent_info = h.get_torrent_info()
+                    piece_length = torrent_info.piece_length()
+                    num_pieces = torrent_info.num_pieces()
+                    start_index = offset // piece_length
+                    end_index = (offset+size) // piece_length
+                    if self.LOGLEVEL > 3: print 'pieces', start_index, end_index
+                    priorities = h.piece_priorities()
+                    #print 'priorities', priorities
+                    for i in range(start_index, min(end_index+1,num_pieces)):
+                        priorities[i] = 7
+                    h.prioritize_pieces(priorities)
+                    if self.LOGLEVEL > 3: print 'priorities', priorities
+                    #  h.piece_priority(i, 8)
+                    #print 'piece_priorities set'
+                    for i in range(start_index, min(end_index+1,num_pieces)):
+                        if self.LOGLEVEL > 3: print 'waiting for', i
+                        for i in range(10):
+                            if h.have_piece(i): break
+                            time.sleep(1)
+                        if self.LOGLEVEL > 3: print 'we have', i
+            os.lseek(fh, offset, 0)
+            ret = os.read(fh, size)
+            #print 'ret', ret
+            return ret
 
     def readdir(self, path, fh):
         with self.rwlock:
