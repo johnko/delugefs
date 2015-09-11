@@ -636,7 +636,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.repo.add(fn+'/.__delugefs_dir__')
             self.repo.commit(m='mkdir '+path)
             self.should_push = True
-            return ret
+            return 0
 
     def open(self, path, flags):
         with self.rwlock:
@@ -656,20 +656,24 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(dat_fn, flags)
                 else:
                     return os.open(fn, flags)
-            # read and write below
-            if path.startswith('/.__delugefs__'): return 0
-            if path in self.open_files:
-                tmp = self.open_files[path]
             else:
-                tmp = uuid.uuid4().hex
-                if os.path.isfile(fn):
-                    with open(fn, 'rb') as f:
-                        prev = lt.bdecode(f.read())['info']['name']
-                        prev_fn = os.path.join(self.dat, prev[:2], prev)
-                        if os.path.isfile(prev_fn):
-                            shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
-                self.open_files[path] = tmp
-            return os.open(os.path.join(self.tmp, tmp), flags)
+                # read and write below
+                if path.startswith('/.__delugefs__'): return 0
+                if path in self.open_files:
+                    if self.LOGLEVEL > 3: print '%s in self.open_files' % (path)
+                    tmp = self.open_files[path]
+                else:
+                    if self.LOGLEVEL > 3: print '%s NOT in self.open_files' % (path)
+                    tmp = uuid.uuid4().hex
+                    if os.path.isfile(fn):
+                        with open(fn, 'rb') as f:
+                            prev = lt.bdecode(f.read())['info']['name']
+                            prev_fn = os.path.join(self.dat, prev[:2], prev)
+                            if os.path.isfile(prev_fn):
+                                if self.LOGLEVEL > 3: print 'shutil.copy to tmp'
+                                shutil.copyfile(prev_fn, os.path.join(self.tmp, tmp))
+                    self.open_files[path] = tmp
+                return os.open(os.path.join(self.tmp, tmp), flags)
 
     def read(self, path, size, offset, fh):
         with self.rwlock:
@@ -720,7 +724,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 h = self.bt_handles[path]
                 priorities = h.piece_priorities()
                 #h.prioritize_pieces([0 for x in priorities])
-            return ret
+            return 0
 
     def rename(self, old, new):
         with self.rwlock:
@@ -729,6 +733,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.repo.mv(self.repodb+old, self.repodb+new)
             self.repo.commit(m='rename '+old+' to '+new)
             self.should_push = True
+            return 0
 
     def rmdir(self, path):
         with self.rwlock:
@@ -740,10 +745,11 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.should_push = True
             if os.path.isdir(self.repodb+path):
                 os.rmdir(self.repodb+path)
+            return 0
 
     def statfs(self, path):
         fn = self.repodb + path
-        #print repr(fn)
+        if self.LOGLEVEL > 3: print 'statfs %s' % (path)
         stv = os.statvfs(fn.encode(FS_ENCODE))
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
             'f_blocks', 'f_bsize', 'f_favail', 'f_ffree', 'f_files', 'f_flag',
@@ -758,7 +764,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:
-            if self.LOGLEVEL > 3: print fh
+            if self.LOGLEVEL > 3: print 'truncate fh is ', fh
             fn = self.repodb+path
             if path.startswith('/.__delugefs__'): return 0
             if path in self.open_files: # file was opened in READWRITE
@@ -805,6 +811,7 @@ class DelugeFS(LoggingMixIn, Operations):
             #        os.remove(self.repodb+path)
             #    else:
             #        raise e
+            return 0
 
     def write(self, path, data, offset, fh):
         with self.rwlock:

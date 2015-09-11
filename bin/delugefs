@@ -24,13 +24,12 @@ if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
 fi
 sysctl vfs.usermount=1 > /dev/null 2> /dev/null
 
+sysctl vfs.fuse.mmap_enable=1 > /dev/null 2> /dev/null # has to be 1 so cp doens't error Bad Address
+sysctl vfs.fuse.data_cache_enable=1 > /dev/null 2> /dev/null # has to be 1 so cp doens't error Bad Address
 # invalidate fuse data cache to force reads (especially since the torrent file will change without telling FUSE)
-sysctl vfs.fuse.data_cache_enable=0 > /dev/null 2> /dev/null
 sysctl vfs.fuse.data_cache_invalidate=1 > /dev/null 2> /dev/null
-sysctl vfs.fuse.mmap_enable=0 > /dev/null 2> /dev/null
-
 # invalidate the lookup cache because files can be removed without telling FUSE
-sysctl vfs.fuse.lookup_cache_enable=0 > /dev/null 2> /dev/null
+sysctl vfs.fuse.lookup_cache_enable=1 > /dev/null 2> /dev/null
 
 if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
     zfs create ${ZFS_DATASET}
