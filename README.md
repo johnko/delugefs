@@ -1,23 +1,27 @@
-This fork is brought to a simmer over medium-low heat, and modified to for FreeBSD.
+This fork is brought to a simmer over medium-low heat, and modified to taste for FreeBSD.
 
 # This Fork's Planned Changes
 
-- change the "keep_pushing" loop to event driven?? but loses separate thread
+- change the "keep_pushing" loop to event driven?? but loses separate single thread
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
-- FUSE mounted allow_other requires root, but we don't want to run code as root
 - torrent.info.name should be sha256 of file instead of uuid.hex so we can dedup if this creates similar torrent.info.hash
 - Known issue: hardlink fails
 
 # This Fork's Implemented Changes
 
-Tick if tested:
+Tick if manually tested:
 
-- [ ] specify BitTorrent start port number with --port
-- [ ] Git instead of Mercurial
+- [x] specify BitTorrent start port number with --port
+- [x] Git instead of Mercurial
 - [ ] SSH prep-node script to bootstrap id_ed25519.pub and known_hosts
 - [ ] force SSH command in authorized_keys2 after "git push", "git merge tomerge" ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
+
+# TODO, but no idea yet on how to implement
+
+- Find a better way to invalidate cache (instead of always invalidating it via sysctl)
+- FUSE mounted allow_other requires root, but we don't want to run code as root
 
 # Overview
 
@@ -43,11 +47,7 @@ Key insights this FS proves:
 FreeBSD:
 
 - kldload fuse
-- pkg install python27 libffi indexinfo gettext-runtime py27-setuptools27
-- pkg install fusefs-libs
-- pkg install py27-pybonjour mDNSResponder
-- pkg install py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu boost-python-libs
-- pkg install py27-sh
+- pkg install git fusefs-libs py27-pybonjour py27-libtorrent-rasterbar py27-sh
 
 
 # Current Status
