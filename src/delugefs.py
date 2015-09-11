@@ -274,7 +274,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def __check_for_undermirrored_files(self):
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
         try:
-            print 'check_for_undermirrored_files @', datetime.datetime.now()
+            if self.LOGLEVEL > 2: print 'check_for_undermirrored_files @', datetime.datetime.now()
             my_uids = set(self.__get_active_info_hashes())
             counter = collections.Counter(my_uids)
             peer_free_space = {'__self__': self.__get_free_space()}
@@ -287,13 +287,13 @@ class DelugeFS(LoggingMixIn, Operations):
                     uid_peers[s].add(peer_id)
                 peer.free_space = peer.server.__get_free_space()
                 peer_free_space[peer_id] = peer.free_space
-            print 'counter', counter
-            print 'peer_free_space', peer_free_space
+            if self.LOGLEVEL > 2: print 'counter', counter
+            if self.LOGLEVEL > 2: print 'peer_free_space', peer_free_space
             if len(peer_free_space) < 2:
-                print "can't do anything, since i'm the only peer!"
+                if self.LOGLEVEL > 2: print "can't do anything, since i'm the only peer!"
                 return
             fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
-            print 'fs_free_space: %0.2fGB' % fs_free_space
+            if self.LOGLEVEL > 2: print 'fs_free_space: %0.2fGB' % fs_free_space
             for root, dirs, files in os.walk(self.repodb):
                 #print 'root, dirs, files', root, dirs, files
                 if root.startswith(os.path.join(self.repodb, '.git')): continue
@@ -303,19 +303,19 @@ class DelugeFS(LoggingMixIn, Operations):
                     fn = os.path.join(root, fn)
                     e = get_torrent_dict(fn)
                     if not e:
-                        print 'not a torrent?', fn
+                        if self.LOGLEVEL > 2: print 'not a torrent?', fn
                         continue
                     uid = e['info']['name']
                     size = e['info']['length']
                     path = fn[len(self.repodb):]
                     if counter[uid] < 2:
                         peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
-                        print 'peer_free_space_list', peer_free_space_list
+                        if self.LOGLEVEL > 2: print 'peer_free_space_list', peer_free_space_list
                         for best_peer_id, free_space in peer_free_space_list:
                             if uid in my_uids and best_peer_id=='__self__':
                                 best_peer_id = peer_free_space_list[1][0]
                             peer_free_space[best_peer_id] -= size
-                            print 'need to rep', path, 'to', best_peer_id
+                            if self.LOGLEVEL > 2: print 'need to rep', path, 'to', best_peer_id
                             if '__self__'==best_peer_id:
                                 self.__please_mirror(path)
                             else:
@@ -323,16 +323,16 @@ class DelugeFS(LoggingMixIn, Operations):
                                 self.peers[best_peer_id].free_space -= size
                             break
                     if counter[uid] > 3:
-                        print 'uid_peers', uid_peers
+                        if self.LOGLEVEL > 2: print 'uid_peers', uid_peers
                         peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
-                        print 'peer_free_space_list2', peer_free_space_list
+                        if self.LOGLEVEL > 2: print 'peer_free_space_list2', peer_free_space_list
                         for best_peer_id, free_space in peer_free_space_list:
                             if '__self__'==best_peer_id:
                                 if self.__please_stop_mirroring(path): break
                             else:
                                 if self.peers[best_peer_id].server.__please_stop_mirroring(path): break
                                 self.peers[best_peer_id].free_space += size
-                        print '__please_stop_mirroring', path, 'sent to', best_peer_id
+                        if self.LOGLEVEL > 2: print '__please_stop_mirroring', path, 'sent to', best_peer_id
         except Exception as e:
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
@@ -377,7 +377,7 @@ class DelugeFS(LoggingMixIn, Operations):
             except:
                 traceback.print_exc()
                 del self.bt_handles[k]
-        print 'active_info_hashes', active_info_hashes
+        if self.LOGLEVEL > 2: print 'active_info_hashes', active_info_hashes
         return active_info_hashes
 
     def __get_free_space(self):
@@ -446,7 +446,7 @@ class DelugeFS(LoggingMixIn, Operations):
             time.sleep(random.randint(3,7))
             #print '='*80
             self.__write_active_torrents()
-            #TODO replace self.__check_for_undermirrored_files()
+            self.__check_for_undermirrored_files()
 
     def __please_mirror(self, path):
         try:
@@ -541,14 +541,6 @@ class DelugeFS(LoggingMixIn, Operations):
             with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
                 for path, h in self.bt_handles.items():
                     s = h.status()
-#                    torrent_peers = h.get_peer_info()
-#                    print 'torrent_peers', torrent_peers
-#                    if len(torrent_peers) < 1:
-#                        print 'only', len(torrent_peers), 'peer for', path
-#                        if self.peers:
-#                            peer = self.peers.values()[random.randint(0,len(self.peers)-1)]
-#                            peer.server.__please_mirror(path)
-                    #if s.state==5 and s.download_rate==0 and s.upload_rate==0: continue
                     state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
                     f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
                             (path, h.get_torrent_info().name(), s.progress * 100, s.download_rate / 1000, s.upload_rate / 1000, \
@@ -624,7 +616,6 @@ class DelugeFS(LoggingMixIn, Operations):
 #            return os.link(source, target)
 
     listxattr = None
-#    mknod = os.mknod
 
     def mkdir(self, path, flags):
         with self.rwlock:
@@ -638,12 +629,13 @@ class DelugeFS(LoggingMixIn, Operations):
             self.should_push = True
             return 0
 
+#    mknod = os.mknod
+
     def open(self, path, flags):
         with self.rwlock:
             fn = self.repodb+path
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
                 if path.startswith('/.__delugefs__'):
-                    if self.LOGLEVEL > 3: print '='*80
                     return os.open(fn, flags)
                 if self.LOGLEVEL > 3: print '\treadonly'
                 t = get_torrent_dict(fn)
@@ -887,7 +879,7 @@ if __name__ == '__main__':
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
-        fuse = FUSE(server, config['mount'], foreground=True, debug=True) #, direct_io=True) #, allow_other=True)
+        fuse = FUSE(server, config['mount'], foreground=True) #, debug=True) #, allow_other=True)
     else:
         while True:
             time.sleep(60)
