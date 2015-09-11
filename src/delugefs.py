@@ -337,6 +337,36 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
 
+    def __finalize(self, path, uid):
+        if self.LOGLEVEL > 2: print 'finalize', path, uid
+        try:
+            fs = lt.file_storage()
+            tmp_fn = os.path.join(self.tmp, uid)
+
+            #print tmp_fn
+            lt.add_files(fs, tmp_fn)
+            t = lt.create_torrent(fs)
+            t.set_creator("DelugeFS");
+            lt.set_piece_hashes(t, self.tmp)
+            tdata = t.generate()
+            #print tdata
+            with open(self.repodb+path, 'wb') as f:
+                f.write(lt.bencode(tdata))
+            self.repo.add(self.repodb+path)
+            #print 'wrote', self.repodb+path
+            dat_dir = os.path.join(self.dat, uid[:2])
+            if not os.path.isdir(dat_dir):
+                try: os.mkdir(dat_dir)
+                except: pass
+            os.rename(tmp_fn, os.path.join(dat_dir, uid))
+            #print 'committing', self.repodb+path
+            self.repo.commit(m='wrote '+path)
+            self.should_push = True
+            self.__add_torrent(tdata, path)
+        except Exception as e:
+            traceback.print_exc()
+            raise e
+
     def __get_active_info_hashes(self):
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
         active_info_hashes = []
@@ -682,43 +712,13 @@ class DelugeFS(LoggingMixIn, Operations):
             ret = os.close(fh)
             if self.LOGLEVEL > 3: print 'ret', ret, path
             if path in self.open_files:
-                self.finalize(path, self.open_files[path])
+                self.__finalize(path, self.open_files[path])
                 del self.open_files[path]
             if path in self.bt_in_progress:
                 h = self.bt_handles[path]
                 priorities = h.piece_priorities()
                 #h.prioritize_pieces([0 for x in priorities])
             return ret
-
-    def finalize(self, path, uid):
-        if self.LOGLEVEL > 2: print 'finalize', path, uid
-        try:
-            fs = lt.file_storage()
-            tmp_fn = os.path.join(self.tmp, uid)
-
-            #print tmp_fn
-            lt.add_files(fs, tmp_fn)
-            t = lt.create_torrent(fs)
-            t.set_creator("DelugeFS");
-            lt.set_piece_hashes(t, self.tmp)
-            tdata = t.generate()
-            #print tdata
-            with open(self.repodb+path, 'wb') as f:
-                f.write(lt.bencode(tdata))
-            self.repo.add(self.repodb+path)
-            #print 'wrote', self.repodb+path
-            dat_dir = os.path.join(self.dat, uid[:2])
-            if not os.path.isdir(dat_dir):
-                try: os.mkdir(dat_dir)
-                except: pass
-            os.rename(tmp_fn, os.path.join(dat_dir, uid))
-            #print 'committing', self.repodb+path
-            self.repo.commit(m='wrote '+path)
-            self.should_push = True
-            self.__add_torrent(tdata, path)
-        except Exception as e:
-            traceback.print_exc()
-            raise e
 
     def rename(self, old, new):
         with self.rwlock:
