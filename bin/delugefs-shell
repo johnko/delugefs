@@ -1,8 +1,8 @@
 #!/bin/sh
 
-if echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-upload-pack' > /dev/null 2> /dev/null ; then
+if echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-upload-pack ' > /dev/null 2> /dev/null ; then
     git-shell -c "${SSH_ORIGINAL_COMMAND}"
-elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-receive-pack' > /dev/null 2> /dev/null ; then
+elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^git-receive-pack ' > /dev/null 2> /dev/null ; then
     git-shell -c "${SSH_ORIGINAL_COMMAND}"
     GITPATH=`echo "${SSH_ORIGINAL_COMMAND}" | sed 's;git-receive-pack ;;' | sed "s;^';;" | sed "s;'$;;"`
     cd ${GITPATH}
