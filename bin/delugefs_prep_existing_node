@@ -2,7 +2,7 @@
 
 NEWNODE="${1}"
 if [ "x" == "x${NEWNODE}" ]; then
-    echo "ERROR: missing New Node as arg1"
+    echo "ERROR: missing New Node IP as arg1"
     exit 1
 fi
 

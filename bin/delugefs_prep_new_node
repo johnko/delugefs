@@ -2,7 +2,7 @@
 
 EXISTINGNODE="${1}"
 if [ "x" == "x${EXISTINGNODE}" ]; then
-    echo "ERROR: missing Existing Node as arg1"
+    echo "ERROR: missing Existing Node IP as arg1"
     exit 1
 fi
 
