@@ -898,7 +898,7 @@ if __name__ == '__main__':
         btport = int(config['btport'])
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
+    server = DelugeFS(config['cluster'], config['root'], btport=config.get('btport'), sshport=config.get('sshport'), loglevel=config.get('loglevel'), lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
