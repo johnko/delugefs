@@ -413,13 +413,14 @@ class DelugeFS(LoggingMixIn, Operations):
     def __keep_pushing(self):
         while True:
             for peer in self.peers.values():
-                if self.pull_from[peer.host] and (self.bootstrapping == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.nametoaddr[peer.host] is not None):
-                    # only pull if finished bootstrapping
-                    # only pull if delugefs detected
-                    print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (self.nametoaddr[peer.host], peer.ssh_port, self.name, peer.host)
-                    self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[peer.host], peer.ssh_port, self.name),
-                                'refs/heads/master:refs/remotes/%s/master' % (peer.host))
-                    self.pull_from[peer.host] = False
+                if peer.host in self.pull_from:
+                    if self.pull_from[peer.host] and (self.bootstrapping == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.nametoaddr[peer.host] is not None):
+                        # only pull if finished bootstrapping
+                        # only pull if delugefs detected
+                        print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (self.nametoaddr[peer.host], peer.ssh_port, self.name, peer.host)
+                        self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[peer.host], peer.ssh_port, self.name),
+                                    'refs/heads/master:refs/remotes/%s/master' % (peer.host))
+                        self.pull_from[peer.host] = False
             if self.should_push:
                 # set default to not pushed if not exist
                 for peer in self.peers.values():
