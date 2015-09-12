@@ -799,7 +799,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def symlink(self, target, source):
         with self.rwlock:
             if target.startswith('/.__delugefs__'): return 0
-            if src.startswith('/.__delugefs__'): return 0
+            if source.startswith('/.__delugefs__'): return 0
             ret = os.symlink(source, target)
             return ret
 
