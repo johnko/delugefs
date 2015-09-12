@@ -20,7 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 '''
 
-import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math
+import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, SimpleHTTPServer, SocketServer
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
 import sh
@@ -40,9 +40,12 @@ class Peer(object):
         #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port, sshport, loglevel, lazy=False, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy=False, create=False):
         self.bootstrapping = True
         self.LOGLEVEL = loglevel
+        self.webdir = webdir
+        self.webip = webip
+        self.webport = webport
         self.lazy = lazy
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
@@ -81,6 +84,9 @@ class DelugeFS(LoggingMixIn, Operations):
         self.bt_session.add_dht_router('localhost', 10670)
         print '...is_dht_running()', self.bt_session.dht_state()
 
+        t = threading.Thread(target=self.__start_webui)
+        t.daemon = True
+        t.start()
         t = threading.Thread(target=self.__start_listening_bonjour_ssh)
         t.daemon = True
         t.start()
@@ -584,6 +590,15 @@ class DelugeFS(LoggingMixIn, Operations):
         finally:
             browse_sdRef.close()
 
+    def __start_webui(self):
+        os.chdir(self.webdir)
+        webhandler = SimpleHTTPServer.SimpleHTTPRequestHandler
+        map = webhandler.extensions_map
+        map[".log"] = "text/plain"
+        webhandler.extensions_map = map
+        self.httpd = SocketServer.TCPServer((self.webip, self.webport), webhandler)
+        self.httpd.serve_forever()
+
     def __write_active_torrents(self):
         try:
             with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
@@ -921,6 +936,18 @@ if __name__ == '__main__':
         usage('cluster name not set')
     if not 'root' in config:
         usage('root not set')
+    if 'webip' in config:
+        webip = int(config['webip'])
+    else:
+        webip = 'localhost'
+    if 'webport' in config:
+        webport = int(config['webport'])
+    else:
+        webport = 8000
+    if 'webdir' in config:
+        webdir = int(config['webdir'])
+    else:
+        webdir = '/usr/home/delugefs/webui'
     if 'sshport' in config:
         sshport = int(config['sshport'])
     else:
@@ -933,7 +960,7 @@ if __name__ == '__main__':
         loglevel = int(config['loglevel'])
     else:
         loglevel = 0
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
