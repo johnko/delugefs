@@ -358,10 +358,17 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __finalize(self, path, uid):
         if self.LOGLEVEL > 2: print 'finalize', path, uid
-        try:
-            fs = lt.file_storage()
-            tmp_fn = os.path.join(self.tmp, uid)
+        # try sha256 before making torrent
+        tmp_fn = os.path.join(self.tmp, uid)
+        sh.sha256('-r', tmp_fn, _out=__finalize_callback))
 
+    def __finalize_callback(line):
+        try:
+            uid = line.split(None, 1)[0]
+            old_tmp_fn = line.split(None, 1)[1]
+            tmp_fn = os.path.join(self.tmp, uid)
+            os.rename(old_tmp_fn, tmp_fn)
+            fs = lt.file_storage()
             #print tmp_fn
             lt.add_files(fs, tmp_fn)
             t = lt.create_torrent(fs)
