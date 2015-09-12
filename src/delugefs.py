@@ -189,9 +189,9 @@ class DelugeFS(LoggingMixIn, Operations):
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
         for peer in self.peers.values():
             if (peer.bt_port is not None) and (self.nametoaddr[peer.host] is not None):
-                print 'adding peer:', (self.nametoaddr[peer.host], peer.bt_port)
+                if self.LOGLEVEL > 3: print 'adding peer:', (self.nametoaddr[peer.host], peer.bt_port)
                 h.connect_peer((self.nametoaddr[peer.host], peer.bt_port), 0)
-        if self.LOGLEVEL > 2: print 'added', uid
+        if self.LOGLEVEL > 3: print 'added', uid
         self.bt_handles[path] = h
         self.bt_in_progress.add(path)
 
@@ -280,8 +280,8 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __bonjour_query_record_callback(self, sdRef, flags, interfaceIndex, errorCode, fullname, rrtype, rrclass, rdata, ttl):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
-            if self.LOGLEVEL > 2: print '  IP         =', socket.inet_ntoa(rdata)
-            if self.LOGLEVEL > 2: print 'fullname ', fullname
+            if self.LOGLEVEL > 3: print '  IP         =', socket.inet_ntoa(rdata)
+            if self.LOGLEVEL > 3: print 'fullname ', fullname
             self.nametoaddr[fullname] = socket.inet_ntoa(rdata)
             if fullname in self.nametoaddr:
                 self.nametoaddr[fullname] = socket.inet_ntoa(rdata)
@@ -470,7 +470,7 @@ class DelugeFS(LoggingMixIn, Operations):
             for fn in files:
                 if fn=='.__delugefs_dir__': continue
                 fn = os.path.join(root, fn)
-                print 'loading torrent', fn
+                if self.LOGLEVEL > 3: print 'loading torrent', fn
                 e = get_torrent_dict(fn)
                 if not e:
                     print 'not able to read torrent', fn
@@ -485,9 +485,9 @@ class DelugeFS(LoggingMixIn, Operations):
                     if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
                     h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
                     #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
-                    print 'added ', fn, '(%s)'%uid
+                    if self.LOGLEVEL > 3: print 'added ', fn, '(%s)'%uid
                     self.bt_handles[fn[len(self.repodb):]] = h
-        print 'self.bt_handles', self.bt_handles
+        if self.LOGLEVEL > 3: print 'self.bt_handles', self.bt_handles
 
     def __monitor(self):
         while True:
@@ -498,7 +498,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __please_mirror(self, path):
         try:
-            print '__please_mirror', path
+            if self.LOGLEVEL > 3: print '__please_mirror', path
             fn = self.repodb+path
             torrent = get_torrent_dict(fn)
             if torrent:
