@@ -1,17 +1,15 @@
 #!/bin/sh
 
 ZFS_DATASET="tank/delugefs"
+CLUSTER_USER="delugefs"
+USER_ID="1007"
 CLUSTER_ID="${1}"
 shift
 if [ "x" != "x${1}" ]; then
     ZFS_DATASET="${1}"
     shift
 fi
-if [ "x--create" == "x${1}" ]; then
-    CREATE="--create --btport 6881"
-    shift
-fi
-PYSCRIPT=/usr/home/delugefs/delugefs.py
+PYSCRIPT=/usr/home/${CLUSTER_USER}/delugefs.py
 
 service mdnsd onestatus > /dev/null 2> /dev/null || service mdnsd onestart > /dev/null 2> /dev/null
 
@@ -39,36 +37,35 @@ if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
     fi
 fi
 
-if ! id 1007 > /dev/null 2> /dev/null ; then
+if ! id ${USER_ID} > /dev/null 2> /dev/null ; then
     ### Add delugefs user
-    echo "delugefs:1007::::::/usr/home/delugefs:/bin/csh:" | adduser -w no -f -
-    pw groupmod operator -m delugefs
-    if ! id 1007 > /dev/null 2> /dev/null ; then
-        echo "ERROR: delugefs user not exist"
+    echo "${CLUSTER_USER}:${USER_ID}::::::/usr/home/${CLUSTER_USER}:/bin/csh:" | adduser -w no -f -
+    pw groupmod operator -m ${CLUSTER_USER}
+    if ! id ${USER_ID} > /dev/null 2> /dev/null ; then
+        echo "ERROR: ${CLUSTER_USER} user not exist"
         exit 1
     fi
 fi
 
 
-if [ ! -d /usr/home/delugefs ]; then
-    install -d -m 755 -o delugefs /usr/home/delugefs
+if [ ! -d /usr/home/${CLUSTER_USER} ]; then
+    install -d -m 755 -o ${CLUSTER_USER} /usr/home/${CLUSTER_USER}
 fi
-if [ ! -e /usr/home/delugefs/.ssh/id_ed25519 ]; then
-    su -l delugefs -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
+if [ ! -e /usr/home/${CLUSTER_USER}/.ssh/id_ed25519 ]; then
+    su -l ${CLUSTER_USER} -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
 fi
-install -m 644 -o delugefs ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
-install -m 755 -o delugefs ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
-install -m 755 -o delugefs ${HOME}/git/delugefs/bin/delugefs-shell ${PYSCRIPT%/*}/delugefs-shell
-chown delugefs /${ZFS_DATASET}
+install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
+install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
+install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${PYSCRIPT%/*}/delugefs-shell
+chown ${CLUSTER_USER} /${ZFS_DATASET}
 
 
 if ! mount | grep "/tank/${CLUSTER_ID}" > /dev/null 2> /dev/null ; then
     MOUNT="--mount /tank/${CLUSTER_ID}"
-    install -d -m 755 -o delugefs /tank/${CLUSTER_ID}
+    install -d -m 755 -o ${CLUSTER_USER} /tank/${CLUSTER_ID}
 fi
 
-su -l delugefs -c "${PYSCRIPT} \
-    ${CREATE} \
+su -l ${CLUSTER_USER} -c "${PYSCRIPT} \
     ${MOUNT} \
     --cluster ${CLUSTER_ID} \
     --root /${ZFS_DATASET}/.${CLUSTER_ID}db $*"

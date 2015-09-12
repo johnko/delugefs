@@ -115,7 +115,9 @@ server1$ ./delugefs.py --cluster bigstore \
 To bring up an additional node on a different machine:
 
 ```
-server2$ delugefs bigstore tank/delugefs
+server2$ delugefs bigstore tank/delugefs --lazy --btport 6881
 ```
+
+The `--lazy` option means data will only be transfered during a READ, instead of in the background
 
 That's all there is to it!

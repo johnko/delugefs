@@ -40,9 +40,10 @@ class Peer(object):
         #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port, sshport, loglevel, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, loglevel, lazy=False, create=False):
         self.bootstrapping = True
         self.LOGLEVEL = loglevel
+        self.lazy = lazy
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.root = os.path.realpath(root)
@@ -289,6 +290,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 return 'pulling from new peer', fullname
 
     def __check_for_undermirrored_files(self):
+        if self.lazy: return
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
         try:
             if self.LOGLEVEL > 2: print 'check_for_undermirrored_files @', datetime.datetime.now()
@@ -897,7 +899,7 @@ if __name__ == '__main__':
         loglevel = 0
     else:
         loglevel = int(config['loglevel'])
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, create=config.get('create'))
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
