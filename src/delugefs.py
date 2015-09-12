@@ -937,7 +937,7 @@ if __name__ == '__main__':
     if not 'root' in config:
         usage('root not set')
     if 'webip' in config:
-        webip = int(config['webip'])
+        webip = config['webip']
     else:
         webip = 'localhost'
     if 'webport' in config:
@@ -945,7 +945,7 @@ if __name__ == '__main__':
     else:
         webport = 8000
     if 'webdir' in config:
-        webdir = int(config['webdir'])
+        webdir = config['webdir']
     else:
         webdir = '/usr/home/delugefs/webui'
     if 'sshport' in config:
