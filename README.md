@@ -8,6 +8,8 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - possibility to manually add external network peer
 - Known issue: hardlink and symlink fails
 - Known issue: set ctime/mtime on a file fails
+- Known issue: set owner fails, but doesn't error
+- Known issue: set permission fails, but doesn't error
 
 # This Fork's Implemented Changes
 
