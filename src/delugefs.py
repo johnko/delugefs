@@ -770,7 +770,9 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if old.startswith('/.__delugefs__'): return 0
             if new.startswith('/.__delugefs__'): return 0
-            self.repo.rm(self.repodb+new)
+            fn = self.repodb+new
+            if os.path.isfile(fn):
+                self.repo.rm(fn)
             self.repo.mv(self.repodb+old, self.repodb+new)
             self.repo.commit(m='rename '+old+' to '+new)
             self.should_push = True
