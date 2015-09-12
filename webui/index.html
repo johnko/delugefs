@@ -4,44 +4,118 @@
         <title>DelugeFS - Status</title>
     </head>
     <body>
-        <h1>DelugeFS - Status</h1>
-        <div>
-            <h2>Add New Peer</h2>
-            <form>
-                <input type="text"/>
-                <input type="Submit"/>
-            </form>
+        <div class="nav">
+            <h1>DelugeFS - Status</h1>
         </div>
-        <div>
-            <h2>Add DHT Router</h2>
-            <form>
-                <input type="text"/>
-                <input type="Submit"/>
-            </form>
-        </div>
-        <div>
-            <h2>Disk Usage</h2>
+        <div class="container border-light float-left">
+            <h2>Cluster Info</h2>
             <div>
-                Loading...
+                <h3>Disk Free Space</h3>
+                <div class="data">
+                    Loading...
+                </div>
             </div>
         </div>
-        <div>
+        <div class="container border-light float-left">
+            <h2>This Node Info</h2>
+            <div>
+                <h3>Disk Usage</h3>
+                <div class="data">
+                    Loading...
+                </div>
+            </div>
+        </div>
+        <div class="container border-light float-left">
             <h2>SSH Peers</h2>
-            <div>
+                <div class="form">
+                    <h3>Add A New Peer</h3>
+                    <form>
+                        <input type="text" value="Host (Name / IP)"/>
+                        <input class="port" type="text" value="SSH Port"/>
+                        <button>Add Peer</button>
+                    </form>
+                </div>
+            <div class="data">
                 Loading...
             </div>
         </div>
-        <div>
+        <div class="container border-light float-left">
             <h2>Torrent Peers</h2>
-            <div>
+                <div class="form">
+                    <h3>Add A DHT Router</h3>
+                    <form>
+                        <input type="text" value="Host (Name / IP)"/>
+                        <input class="port" type="text" value="DHT Port"/>
+                        <button>Add Router</button>
+                    </form>
+                </div>
+            <div class="data">
                 Loading...
             </div>
         </div>
-        <div>
+        <div class="container border-light clear">
             <h2>Active Torrents</h2>
-            <div>
+            <div class="data">
                 Loading...
             </div>
         </div>
+
+        <style type="text/css">
+            body {
+                margin: 0 1em 0 0;
+                padding: 0;
+            }
+            .border-light {
+                border-bottom: 1px solid #eee;
+                border-right: 1px solid #eee;
+            }
+            .nav {
+                border-bottom: 1px solid #ccc;
+                margin: 0px 0px 1em 1em;
+                padding: 0.5em;
+            }
+            .container {
+                min-width: 20%;
+                margin: 0px 0px 1em 1em;
+                padding: 0.5em;
+            }
+            .float-left {
+                float: left;
+            }
+            .clear {
+                clear: both;
+            }
+            .data {
+                font-size: 1em;
+                font-family: monospace;
+                font-weight: normal;
+            }
+            h1 {
+                margin: 0 0 0 0;
+                font-size: 1em;
+                font-family: monospace;
+                font-weight: normal;
+            }
+            h2 {
+                margin: 0 0 1em 0;
+                font-size: 1em;
+                font-family: monospace;
+                font-weight: bold;
+                text-decoration: underline;
+            }
+            h3 {
+                font-family: monospace;
+                font-size: 1em;
+            }
+            .form h3 {
+                margin: 0;
+            }
+            .form {
+                margin: 0 0 1em 0;
+            }
+            input.port {
+                width: 5em;
+            }
+        </style>
     </body>
 </html>
