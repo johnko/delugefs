@@ -6,7 +6,6 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
-- torrent.info.name should be sha256 of file instead of uuid.hex so we can dedup if this creates similar torrent.info.hash
 - Known issue: hardlink fails
 
 # This Fork's Implemented Changes
@@ -17,6 +16,7 @@ Tick if manually tested:
 - [x] Git instead of Mercurial
 - [ ] SSH prep-node script to bootstrap id_ed25519.pub and known_hosts
 - [ ] force SSH command in authorized_keys2 after "git push", "git merge tomerge" ... command="git-shell -c $SSH_ORIGINAL_COMMAND"
+- [ ] torrent.info.name should be sha256 of file instead of uuid.hex so we can dedup if this creates similar torrent.info.hash
 
 # TODO, but no idea yet on how to implement
 
