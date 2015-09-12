@@ -876,7 +876,7 @@ if __name__ == '__main__':
     config = {}
     k = None
     # somehow we lose a few args in converting sys.argv to config
-    print sys.argv
+    # print sys.argv
     for s in sys.argv:
         if s.startswith('--'):
             if k:  config[k] = True
@@ -887,7 +887,7 @@ if __name__ == '__main__':
                 k = None
     # one last time if k to catch ending --create or --lazy
     if k:  config[k] = True
-    print config
+    # print config
     if not 'cluster' in config:
         usage('cluster name not set')
     if not 'root' in config:
