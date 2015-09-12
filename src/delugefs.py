@@ -40,7 +40,7 @@ class Peer(object):
         #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port, sshport, loglevel, lazy=False, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, loglevel, lazy, create):
         self.bootstrapping = True
         self.LOGLEVEL = loglevel
         self.lazy = lazy
@@ -875,6 +875,7 @@ def usage(msg):
 if __name__ == '__main__':
     config = {}
     k = None
+    # Watch out as FreeBSD default using su runs out of args counters, eg 9th+ arguments are ignored
     for s in sys.argv:
         if s.startswith('--'):
             if k:  config[k] = True
@@ -883,6 +884,7 @@ if __name__ == '__main__':
             if k:
                 config[k] = s.encode(FS_ENCODE)
                 k = None
+    print config
     if not 'cluster' in config:
         usage('cluster name not set')
     if not 'root' in config:
@@ -895,11 +897,28 @@ if __name__ == '__main__':
         btport = random.randint(10000, 20000)
     else:
         btport = int(config['btport'])
-    if not 'loglevel' in config:
+    if (not '1' in config) and (not '2' in config) and (not '3' in config) and (not '4' in config) and (not '5' in config):
         loglevel = 0
     else:
-        loglevel = int(config['loglevel'])
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
+        if '1' in config:
+            loglevel = 1
+        if '2' in config:
+            loglevel = 2
+        if '3' in config:
+            loglevel = 3
+        if '4' in config:
+            loglevel = 4
+        if '5' in config:
+            loglevel = 5
+    if not 'lazy' in config:
+        lazy = False
+    else:
+        lazy = True
+    if not 'create' in config:
+        create = False
+    else:
+        create = True
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy, create)
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
