@@ -362,7 +362,7 @@ class DelugeFS(LoggingMixIn, Operations):
         tmp_fn = os.path.join(self.tmp, uid)
         sh.sha256('-r', tmp_fn, _out=self.__finalize_callback)
 
-    def __finalize_callback(line):
+    def __finalize_callback(self, line):
         try:
             uid = line.split(None, 1)[0]
             old_tmp_fn = line.split(None, 1)[1]
