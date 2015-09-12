@@ -885,6 +885,8 @@ if __name__ == '__main__':
             if k:
                 config[k] = s.encode(FS_ENCODE)
                 k = None
+    # one last time if k to catch ending --create or --lazy
+    if k:  config[k] = True
     print config
     if not 'cluster' in config:
         usage('cluster name not set')
