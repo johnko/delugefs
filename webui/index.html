@@ -5,23 +5,77 @@
     </head>
     <body>
         <div class="nav">
-            <h1>DelugeFS - Status</h1>
+            <h1>DelugeFS <span id="version"></span> - Status</h1>
         </div>
         <div class="container border-light float-left">
-            <h2>Cluster Info</h2>
-            <div>
-                <h3>Disk Free Space</h3>
+            <h2>This Node Info</h2>
+            <div class="table">
+                <div class="label">
+                    <h3>Hostname</h3>
+                </div>
+                <div id="hostname"></div>
+                <div class="label">
+                    <h3>SSH Port</h3>
+                </div>
+                <div id="sshport"></div>
+                <div class="label">
+                    <h3>BT Port</h3>
+                </div>
+                <div id="btport"></div>
+                <div class="label">
+                    <h3>WebUI Host</h3>
+                </div>
+                <div id="webip"></div>
+                <div class="label">
+                    <h3>WebUI Port</h3>
+                </div>
+                <div id="webport"></div>
+                <div class="label">
+                    <h3>WebUI Directory</h3>
+                </div>
+                <div id="webdir"></div>
+                <div class="label">
+                    <h3>Lazy?</h3>
+                </div>
+                <div id="lazy"></div>
+                <div class="label">
+                    <h3>Disk Root</h3>
+                </div>
+                <div id="root"></div>
+                <div class="label">
+                    <h3>Disk Mount</h3>
+                </div>
+                <div id="mount"></div>
+                <div class="label">
+                    <h3>Disk Free Space</h3>
+                </div>
+                <div id="freespace"></div>
+            </div>
+            <div class="clear">
+                <h3>Chart / Graph</h3>
                 <div class="data">
-                    Loading...
+                    Todo...
                 </div>
             </div>
         </div>
         <div class="container border-light float-left">
-            <h2>This Node Info</h2>
-            <div>
-                <h3>Disk Usage</h3>
+            <h2>Cluster Info</h2>
+            <div class="table">
+                <div class="label">
+                    <h3>Cluster Name</h3>
+                </div>
+                <div id="name"></div>
+                <div class="label">
+                    <h3>Disk Free Space</h3>
+                </div>
+                <div>
+                    Todo...
+                </div>
+            </div>
+            <div class="clear">
+                <h3>Disk Space Pie Chart</h3>
                 <div class="data">
-                    Loading...
+                    Todo...
                 </div>
             </div>
         </div>
@@ -36,11 +90,25 @@
                     </form>
                 </div>
             <div class="data">
-                Loading...
+                Todo...
             </div>
         </div>
         <div class="container border-light float-left">
             <h2>Torrent Peers</h2>
+                <div class="form">
+                    <h3>Add A Torrent Peer</h3>
+                    <form>
+                        <input type="text" value="Host (Name / IP)"/>
+                        <input class="port" type="text" value="DHT Port"/>
+                        <button>Add Peer</button>
+                    </form>
+                </div>
+            <div class="data">
+                Todo...
+            </div>
+        </div>
+        <div class="container border-light float-left">
+            <h2>DHT Routers</h2>
                 <div class="form">
                     <h3>Add A DHT Router</h3>
                     <form>
@@ -50,14 +118,12 @@
                     </form>
                 </div>
             <div class="data">
-                Loading...
+                Todo...
             </div>
         </div>
         <div class="container border-light clear">
             <h2>Active Torrents</h2>
-            <div class="data">
-                Loading...
-            </div>
+            <div class="data" id="activetorrents"></div>
         </div>
 
         <style type="text/css">
@@ -107,15 +173,43 @@
                 font-family: monospace;
                 font-size: 1em;
             }
-            .form h3 {
+            .label h3, .form h3 {
                 margin: 0;
             }
-            .form {
+            .label, .form {
                 margin: 0 0 1em 0;
             }
             input.port {
                 width: 5em;
             }
+            div.table div {
+                float: left;
+                font-size: 1em;
+                font-family: monospace;
+                font-weight: normal;
+                margin: 0 0 0 1em;
+            }
+            div.table div.label {
+                margin: 0 0 1em 0;
+                clear: both;
+            }
         </style>
+        <script type="text/javascript">
+            id_to_populate = [
+                "version",
+                "hostname",
+                "sshport",
+                "btport",
+                "webip",
+                "webport",
+                "webdir",
+                "lazy",
+                "root",
+                "mount",
+                "freespace",
+                "name",
+                "activetorrents"
+            ]
+        </script>
     </body>
 </html>
