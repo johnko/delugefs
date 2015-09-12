@@ -798,12 +798,13 @@ class DelugeFS(LoggingMixIn, Operations):
             'f_blocks', 'f_bsize', 'f_favail', 'f_ffree', 'f_files', 'f_flag',
             'f_frsize', 'f_namemax'))
 
-    def symlink(self, target, source):
-        with self.rwlock:
-            if target.startswith('/.__delugefs__'): return 0
-            if source.startswith('/.__delugefs__'): return 0
-            ret = os.symlink(source, target)
-            return ret
+# TODO XXX FIX
+#    def symlink(self, target, source):
+#        with self.rwlock:
+#            if target.startswith('/.__delugefs__'): return 0
+#            if source.startswith('/.__delugefs__'): return 0
+#            ret = os.symlink(source, target)
+#            return ret
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:

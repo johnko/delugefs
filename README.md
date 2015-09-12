@@ -6,7 +6,7 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
-- Known issue: hardlink fails
+- Known issue: hardlink and symlink fails
 
 # This Fork's Implemented Changes
 
