@@ -57,7 +57,7 @@ fi
 install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
 install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
 install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${PYSCRIPT%/*}/delugefs-shell
-cp -ar ${HOME}/git/delugefs/webui ${PYSCRIPT%/*}/
+cp -r ${HOME}/git/delugefs/webui ${PYSCRIPT%/*}/
 find ${PYSCRIPT%/*}/webui -type d -exec chmod 755 {} \;
 find ${PYSCRIPT%/*}/webui -type f -exec chmod 644 {} \;
 chown ${CLUSTER_USER} /${ZFS_DATASET}
