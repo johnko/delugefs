@@ -7,6 +7,7 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 - possibility to manually add external network peer
 - Known issue: hardlink and symlink fails
+- Known issue: set ctime/mtime on a file fails
 
 # This Fork's Implemented Changes
 
