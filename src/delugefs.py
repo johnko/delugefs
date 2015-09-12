@@ -40,7 +40,7 @@ class Peer(object):
         #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port=random.randint(10000, 20000), sshport=22, loglevel=0, lazy=False, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, loglevel, lazy=False, create=False):
         self.bootstrapping = True
         self.LOGLEVEL = loglevel
         self.lazy = lazy
@@ -894,11 +894,17 @@ if __name__ == '__main__':
         usage('root not set')
     if 'sshport' in config:
         sshport = int(config['sshport'])
+    else:
+        sshport = 22
     if 'btport' in config:
         btport = int(config['btport'])
+    else:
+        btport = random.randint(10000, 20000)
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])
-    server = DelugeFS(config['cluster'], config['root'], bt_start_port=config.get('btport'), sshport=config.get('sshport'), loglevel=config.get('loglevel'), lazy=config.get('lazy'), create=config.get('create'))
+    else
+        loglevel = 0
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
