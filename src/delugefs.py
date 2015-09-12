@@ -363,10 +363,25 @@ class DelugeFS(LoggingMixIn, Operations):
         sh.sha256('-r', tmp_fn, _out=self.__finalize_callback)
 
     def __finalize_callback(self, line):
+        if self.LOGLEVEL > 3: print 'line',line
         try:
-            uid = line.split(None, 1)[0]
-            old_tmp_fn = line.split(None, 1)[1]
+            uid = line.strip().split(None, 1)[0]
+            tmp_path_array = line.strip().split(None, 1)[1].split(os.sep)
+            if self.LOGLEVEL > 3: print 'tmp_path_array',tmp_path_array
+            olduid = tmp_path_array[len(tmp_path_array)-1]
+            old_tmp_fn = os.path.join(self.tmp, olduid)
             tmp_fn = os.path.join(self.tmp, uid)
+            path = None
+            if self.LOGLEVEL > 3: print 'olduid',olduid.strip()
+            for k,v in self.open_files.items():
+                if self.LOGLEVEL > 3: print 'k',k
+                if self.LOGLEVEL > 3: print 'v',v
+                if olduid.strip() == v:
+                    if self.LOGLEVEL > 3: print 'found k',k
+                    path = k
+            if self.LOGLEVEL > 3: print 'path',path
+            if self.LOGLEVEL > 3: print 'old_tmp',old_tmp_fn
+            if self.LOGLEVEL > 3: print 'sha_tmp_fn',tmp_fn
             os.rename(old_tmp_fn, tmp_fn)
             fs = lt.file_storage()
             #print tmp_fn
@@ -389,6 +404,7 @@ class DelugeFS(LoggingMixIn, Operations):
             self.repo.commit(m='wrote '+path)
             self.should_push = True
             self.__add_torrent(tdata, path)
+            del self.open_files[path]
         except Exception as e:
             traceback.print_exc()
             raise e
@@ -742,7 +758,8 @@ class DelugeFS(LoggingMixIn, Operations):
             if self.LOGLEVEL > 3: print 'ret', ret, path
             if path in self.open_files:
                 self.__finalize(path, self.open_files[path])
-                del self.open_files[path]
+                # moved to __finalize_callback
+                # del self.open_files[path]
             if path in self.bt_in_progress:
                 h = self.bt_handles[path]
                 priorities = h.piece_priorities()
