@@ -875,7 +875,8 @@ def usage(msg):
 if __name__ == '__main__':
     config = {}
     k = None
-    # Watch out as FreeBSD default using su runs out of args counters, eg 9th+ arguments are ignored
+    # somehow we lose a few args in converting sys.argv to config
+    print sys.argv
     for s in sys.argv:
         if s.startswith('--'):
             if k:  config[k] = True
