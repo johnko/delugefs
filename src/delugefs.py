@@ -902,7 +902,7 @@ if __name__ == '__main__':
         btport = random.randint(10000, 20000)
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])
-    else
+    else:
         loglevel = 0
     server = DelugeFS(config['cluster'], config['root'], btport, sshport, loglevel, lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
