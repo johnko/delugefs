@@ -564,8 +564,8 @@ class DelugeFS(LoggingMixIn, Operations):
         self.repo.log('-1', '--no-color', '--pretty=tformat:%h', _out=self.__get_git_log_callback)
 
     def __get_git_log_callback(self, line):
-        print 'line',line
-        self.httpd.api['gitlog'] = line
+        print 'line',line.strip().split(None, 1)[0]
+        self.httpd.api['gitlog'] = line.strip().split(None, 1)[0]
 
     def __keep_pushing(self):
         while True:
