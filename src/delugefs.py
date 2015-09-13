@@ -36,15 +36,15 @@ class webserver(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            print 'command',self.command
-            print 'path',self.path
-            print 'headers',self.headers
+            # print 'command',self.command
+            # print 'path',self.path
+            # print 'headers',self.headers
             var_req = "/api/v1/"
             if self.path[0:len(var_req)]==var_req:
                 self.send_response(200)
                 key = self.path[len(var_req):]
-                print 'key',key
-                print 'self.server.api',self.server.api
+                # print 'key',key
+                # print 'self.server.api',self.server.api
                 if key in self.server.api:
                     s = self.server.api[key]
                     self.send_header("Content-Type", "text/plain")
@@ -192,7 +192,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.repo = None
         print 'libtorrent listening on:', self.bt_port
         self.bt_session.add_dht_router('localhost', 10670)
-        print '...is_dht_running()', self.bt_session.dht_state()
+        print '...dht_state()', self.bt_session.dht_state()
 
         t = threading.Thread(target=self.__start_webui)
         t.daemon = True
@@ -330,11 +330,9 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'file created'
 
     def __bonjour_browse_callback(self, sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain):
-        #print 'browse_callback', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
         if errorCode != pybonjour.kDNSServiceErr_NoError:
             return
         if not (flags & pybonjour.kDNSServiceFlagsAdd):
-            #print 'browse_callback service removed', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
             if serviceName in self.httpd.peers:
                 del self.httpd.peers[serviceName]
             print 'self.httpd.peers', self.httpd.peers
@@ -780,9 +778,10 @@ class DelugeFS(LoggingMixIn, Operations):
     getxattr = None
 
 # TODO XXX FIX
-#    def link(self, target, source):
+    def link(self, target, source):
 #        with self.rwlock:
 #            return os.link(source, target)
+        return 0
 
     listxattr = None
 
@@ -921,12 +920,13 @@ class DelugeFS(LoggingMixIn, Operations):
             'f_frsize', 'f_namemax'))
 
 # TODO XXX FIX
-#    def symlink(self, target, source):
+    def symlink(self, target, source):
 #        with self.rwlock:
 #            if target.startswith('/.__delugefs__'): return 0
 #            if source.startswith('/.__delugefs__'): return 0
 #            ret = os.symlink(source, target)
 #            return ret
+        return 0
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:
