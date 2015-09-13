@@ -384,8 +384,8 @@
                             peers = '';
                             state = '';
                             if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
-                                row = $('<tr title="'+v['path']+'">');
-                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                row = $('<tr title="'+v['hash_name']+'">');
+                                row.append($('<td>'+v['path']+'</td>'));
                                 /*
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td>'+progress+'</td>'));
@@ -401,8 +401,8 @@
                                 sleepingtable.append(row);
                                 sleepingcount++;
                             } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
-                                row = $('<tr title="'+v['path']+'">');
-                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                row = $('<tr title="'+v['hash_name']+'">');
+                                row.append($('<td>'+v['path']+'</td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td>'+progress+'</td>'));
                                 /*
@@ -418,8 +418,8 @@
                                 qingtable.append(row);
                                 qingcount++;
                             } else {
-                                row = $('<tr title="'+v['path']+'">');
-                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                row = $('<tr title="'+v['hash_name']+'">');
+                                row.append($('<td>'+v['path']+'</td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td>'+progress+'</td>'));
                                 if (v['down']!=0) down = v['down'];
