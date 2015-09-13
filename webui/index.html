@@ -3,83 +3,81 @@
     <head>
         <title>DelugeFS - Status</title>
     </head>
-    <body>
+    <body class="theme-atom">
         <div class="nav">
             <h1>DelugeFS <span id="version"></span> - Status</h1>
         </div>
-        <div class="container border-light float-left">
+        <div class="container border float-left">
             <h2>This Node Info</h2>
             <div class="table">
                 <div class="label">
-                    <h3>Hostname</h3>
+                    Hostname
                 </div>
-                <div id="hostname"></div>
+                <div id="hostname" class="string">TODO localhost</div>
                 <div class="label">
-                    <h3>SSH Port</h3>
+                    SSH Port
                 </div>
-                <div id="sshport"></div>
+                <div id="sshport" class="number">TODO 22</div>
                 <div class="label">
-                    <h3>BT Port</h3>
+                    BT Port
                 </div>
-                <div id="btport"></div>
+                <div id="btport" class="number">TODO 6881</div>
                 <div class="label">
-                    <h3>WebUI Host</h3>
+                    WebUI Host
                 </div>
-                <div id="webip"></div>
+                <div id="webip" class="string">TODO localhost</div>
                 <div class="label">
-                    <h3>WebUI Port</h3>
+                    WebUI Port
                 </div>
-                <div id="webport"></div>
+                <div id="webport" class="number">TODO 8000</div>
                 <div class="label">
-                    <h3>WebUI Directory</h3>
+                    WebUI Directory
                 </div>
-                <div id="webdir"></div>
+                <div id="webdir" class="path">TODO /usr/home/delugefs/webui</div>
                 <div class="label">
-                    <h3>Lazy?</h3>
+                    Lazy?
                 </div>
-                <div id="lazy"></div>
+                <div id="lazy" class="string">TODO True</div>
                 <div class="label">
-                    <h3>Disk Root</h3>
+                    Disk Root
                 </div>
-                <div id="root"></div>
+                <div id="root" class="path">TODO /disk1/.cluster_id_db</div>
                 <div class="label">
-                    <h3>Disk Mount</h3>
+                    Disk Mount
                 </div>
-                <div id="mount"></div>
+                <div id="mount" class="path">TODO /mnt/cluster_id</div>
                 <div class="label">
-                    <h3>Disk Free Space</h3>
+                    Disk Free Space
                 </div>
-                <div id="freespace"></div>
+                <div id="freespace" class="number">TODO <span class="warn">if &lt; 10</span></div>
             </div>
             <div class="clear">
                 <h3>Chart / Graph</h3>
                 <div class="data">
-                    Todo...
+                    Todo... <span class="hilite">hilite</span>
                 </div>
             </div>
         </div>
-        <div class="container border-light float-left">
+        <div class="container border float-left">
             <h2>Cluster Info</h2>
             <div class="table">
                 <div class="label">
-                    <h3>Cluster Name</h3>
+                    Cluster Name
                 </div>
-                <div id="name"></div>
+                <div id="name" class="string">TODO cluster_id</div>
                 <div class="label">
-                    <h3>Disk Free Space</h3>
+                    Disk Free Space
                 </div>
-                <div>
-                    Todo...
-                </div>
+                <div class="number">TODO <span class="warn">if &lt; 10</span></div>
             </div>
             <div class="clear">
                 <h3>Disk Space Pie Chart</h3>
                 <div class="data">
-                    Todo...
+                    Todo... <span class="hilite">hilite</span>
                 </div>
             </div>
         </div>
-        <div class="container border-light float-left">
+        <div class="container border float-left">
             <h2>SSH Peers</h2>
                 <div class="form">
                     <h3>Add A New Peer</h3>
@@ -93,7 +91,7 @@
                 Todo...
             </div>
         </div>
-        <div class="container border-light float-left">
+        <div class="container border float-left">
             <h2>Torrent Peers</h2>
                 <div class="form">
                     <h3>Add A Torrent Peer</h3>
@@ -107,7 +105,7 @@
                 Todo...
             </div>
         </div>
-        <div class="container border-light float-left">
+        <div class="container border float-left">
             <h2>DHT Routers</h2>
                 <div class="form">
                     <h3>Add A DHT Router</h3>
@@ -121,22 +119,107 @@
                 Todo...
             </div>
         </div>
-        <div class="container border-light clear">
+        <div class="container border clear">
             <h2>Active Torrents</h2>
             <div class="data" id="activetorrents"></div>
         </div>
 
         <style type="text/css">
+            body.theme-atom {
+                background-color: #22252B;
+                color: #ADB2BF;
+            }
+            body.theme-atom .border {
+                border: 1px solid #181a1f;
+                border-radius: 3px;
+            }
+            body.theme-atom input {
+                border: 2px solid #181a1f;
+                border-radius: 3px;
+                color: #696E79;
+                font-size: 1em;
+                font-family: monospace;
+            }
+            body.theme-atom input:focus {
+                border: 2px solid #6A84FE;
+                color: #D8DAE0;
+            }
+            body.theme-atom button {
+                background-color: #2F343D;
+                border: 1px solid #181a1f;
+                border-radius: 3px;
+                color: #6E7480;
+                font-size: 1em;
+                font-family: monospace;
+            }
+            body.theme-atom button:hover, body.theme-atom button:active {
+                background-color: #373C47;
+                border: 1px solid #181a1f;
+                color: #99A1AF;
+            }
+            body.theme-atom .nav {
+                border-bottom: 1px solid #3B4048;
+            }
+            body.theme-atom .container {
+                background-color: #292C34;
+            }
+            body.theme-atom h1 {
+                font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+                font-size: 1em;
+                font-weight: 100;
+                letter-spacing: 0.05em;
+            }
+            body.theme-atom h2 {
+                border-bottom: 1px dashed #3B4048;
+                font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+                font-size: 1.5em;
+                font-weight: 100;
+                letter-spacing: 0.05em;
+            }
+            body.theme-atom h3 {
+                font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+                font-size: 1em;
+                font-weight: 100;
+                letter-spacing: 0.05em;
+            }
+            body.theme-atom .data {
+                font-size: 1em;
+                font-family: monospace;
+            }
+            body.theme-atom div.table div {
+                font-family: "Lucida Grande", Arial, sans-serif;
+                font-size: 0.8em;
+                font-weight: 300;
+                letter-spacing: 0.05em;
+            }
+            body.theme-atom div.table div.label {
+                color: #4C5062;
+            }
+            body.theme-atom .number {
+                color: #CA9B63;
+            }
+            body.theme-atom .path {
+                color: #61B6C1;
+            }
+            body.theme-atom .string {
+                color: #9Ac579;
+            }
+            body.theme-atom input {
+                background-color: #1C1D23;
+            }
+            body.theme-atom .warn {
+                color: #CA5D61;
+            }
+            body.theme-atom .hilite {
+                color: #C678DD;
+            }
+        </style>
+        <style type="text/css">
             body {
                 margin: 0 1em 0 0;
                 padding: 0;
             }
-            .border-light {
-                border-bottom: 1px solid #eee;
-                border-right: 1px solid #eee;
-            }
             .nav {
-                border-bottom: 1px solid #ccc;
                 margin: 0px 0px 1em 1em;
                 padding: 0.5em;
             }
@@ -151,47 +234,31 @@
             .clear {
                 clear: both;
             }
-            .data {
-                font-size: 1em;
-                font-family: monospace;
-                font-weight: normal;
-            }
             h1 {
                 margin: 0 0 0 0;
-                font-size: 1em;
-                font-family: monospace;
-                font-weight: normal;
             }
             h2 {
                 margin: 0 0 1em 0;
-                font-size: 1em;
-                font-family: monospace;
-                font-weight: bold;
-                text-decoration: underline;
             }
-            h3 {
-                font-family: monospace;
-                font-size: 1em;
+            div.table div {
+                float: left;
+                margin: 0 0 0 1em;
             }
-            .label h3, .form h3 {
+            div.table div.label {
+                clear: both;
+                margin: 0 0 1em 0;
+            }
+            .form h3 {
                 margin: 0;
             }
             .label, .form {
                 margin: 0 0 1em 0;
             }
+            input, button {
+                padding: 0.3em;
+            }
             input.port {
                 width: 5em;
-            }
-            div.table div {
-                float: left;
-                font-size: 1em;
-                font-family: monospace;
-                font-weight: normal;
-                margin: 0 0 0 1em;
-            }
-            div.table div.label {
-                margin: 0 0 1em 0;
-                clear: both;
             }
         </style>
         <script type="text/javascript">
