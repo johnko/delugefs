@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.1.4'
+APP_VERSION='0.1.5'
 
 
 
@@ -286,6 +286,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.open_files = {} # used to track opened files except READONLY
         print 'init', self.repodb
         self.repo.status()
+        self.__get_git_log()
         self.bootstrapping = False
 
         t = threading.Thread(target=self.__register_ssh, args=())
