@@ -79,7 +79,7 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         count = 0
                         for i in peerip:
                             if count > 0: self.wfile.write(',')
-                            self.wfile.write('{"ip":"%s"}' % i)
+                            self.wfile.write('{"ip":"%s","bt_port":"%s"}' % (i.split(':')[0],i.split(':')[1]))
                             if count < 1: count += 1
                         self.wfile.write(']}]')
                     except Exception as e:

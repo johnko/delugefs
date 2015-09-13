@@ -365,7 +365,7 @@
                         $.each(val, function(k,v) {
                             row = $('<tr>');
                             row.append($('<td>'+v['ip']+'</td>'));
-                            //row.append($('<td>'+v['bt_port']+'</td>'));
+                            row.append($('<td>'+v['bt_port']+'</td>'));
                             btpeertable.append(row);
                             btpeercount++;
                         });
