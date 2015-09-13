@@ -565,9 +565,12 @@ class DelugeFS(LoggingMixIn, Operations):
         self.repo.log('-1', '--no-color', '--pretty=tformat:%h', _out=self.__get_git_log_callback)
 
     def __get_git_log_callback(self, line):
-        abbrevcommit = line.strip().split(None)[1]
-        print 'abbrevcommit',abbrevcommit
-        self.httpd.api['gitlog'] = abbrevcommit
+        try:
+            abbrevcommit = line.strip().split(None)[1]
+            if self.LOGLEVEL > 3: print 'abbrevcommit',abbrevcommit
+            self.httpd.api['gitlog'] = abbrevcommit
+        except:
+            pass
 
     def __keep_pushing(self):
         while True:
