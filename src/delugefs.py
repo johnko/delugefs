@@ -67,10 +67,11 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                     s.num_peers, state_str[s.state]))
                             if count < 1: count += 1
                             p = h.get_peer_info()
-                            print 'p',p
+                            # print 'p',p
                             for i in p:
                                 print 'i',i
-                                ip = i.ip()
+                                ip = i.ip
+                                print 'ip',ip
                                 if ip not in peerip:
                                     peerip.add(ip)
                         self.wfile.write('],"res2":[')
