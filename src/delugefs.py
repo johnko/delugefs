@@ -612,7 +612,7 @@ class DelugeFS(LoggingMixIn, Operations):
         while True:
             time.sleep(random.randint(3,7))
             #print '='*80
-            self.__write_active_torrents()
+            #TODO remove self.__write_active_torrents()
             self.__check_for_undermirrored_files()
 
     def __please_mirror(self, path):
