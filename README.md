@@ -1,5 +1,7 @@
 This fork is brought to a simmer over medium-low heat, and modified to taste for FreeBSD.
 
+![](https://github.com/johnko/delugefs/raw/master/screenshot.png)
+
 # This Fork's Planned Changes
 
 - change the "keep_pushing" loop to event driven?? but loses separate single thread
