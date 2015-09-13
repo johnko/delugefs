@@ -72,7 +72,7 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                 # print 'i',i
                                 # ip = i.ip
                                 ip = '%s:%d' % (i.ip[0],i.ip[1]) # ip and port
-                                print 'ip',ip
+                                # print 'ip',ip
                                 if ip not in peerip:
                                     peerip.add(ip)
                         self.wfile.write('],"res2":[')
