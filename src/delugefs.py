@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.1.1'
+APP_VERSION='0.1.2'
 
 
 
@@ -561,7 +561,7 @@ class DelugeFS(LoggingMixIn, Operations):
         return freebytes
 
     def __get_git_log(self):
-        self.repo.log('-1', '--pretty=format:"%%h"', _out=self.__get_git_log_callback)
+        self.repo.log('-1', '--pretty=format:"%h"', _out=self.__get_git_log_callback)
 
     def __get_git_log_callback(self, line):
         self.httpd.api['gitlog'] = line.strip()
