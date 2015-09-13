@@ -20,7 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 '''
 
-import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, SimpleHTTPServer, SocketServer
+import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
 import sh
@@ -29,6 +29,103 @@ import pybonjour
 SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
+
+class webserver(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+    pass
+
+class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            print 'command',self.command
+            print 'path',self.path
+            print 'headers',self.headers
+            var_req = "/api/v1/"
+            if self.path[0:len(var_req)]==var_req:
+                self.send_response(200)
+                key = self.path[len(var_req):]
+                print 'key',key
+                print 'self.server.api',self.server.api
+                if key in self.server.api:
+                    s = self.server.api[key]
+                    self.send_header("Content-Type", "text/plain")
+                    self.send_header("Content-Length", str(len(s)))
+                    self.end_headers()
+                    self.wfile.write('[{"res":"%s"}]' % s)
+                elif key == 'activetorrents':
+                    try:
+                        self.send_header("Content-Type", "text/plain")
+                        self.end_headers()
+                        self.wfile.write('[{"res":[')
+                        count = 0
+                        peerip = set()
+                        for path, h in self.server.bt_handles.items():
+                            if count > 0: self.wfile.write(',')
+                            s = h.status()
+                            state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
+                            self.wfile.write('{"path":"%s","hash_name":"%s","progress":"%d","down":"%d","up":"%d","peers":"%d","state":"%s"}' % \
+                                    (path, h.get_torrent_info().name(), s.progress * 100, s.download_rate, s.upload_rate, \
+                                    s.num_peers, state_str[s.state]))
+                            if count < 1: count += 1
+                            p = h.get_peer_info()
+                            for i in p:
+                                ip = i.ip()
+                                if ip not in peerip:
+                                    peerip.add(ip)
+                        self.wfile.write('],"res2":[')
+                        count = 0
+                        for i in peerip:
+                            if count > 0: self.wfile.write(',')
+                            self.wfile.write('{"ip":"%s"}' % i)
+                            if count < 1: count += 1
+                        self.wfile.write(']}]')
+                    except Exception as e:
+                        traceback.print_exc()
+                elif key == 'freespace':
+                    self.send_header("Content-Type", "text/plain")
+                    self.end_headers()
+                    f = os.statvfs(self.server.api['root'])
+                    # print 'F_BSIZE',f[statvfs.F_BSIZE]
+                    bsize = f[statvfs.F_BSIZE]
+                    if bsize > 4096: bsize = 512
+                    freebytes = (bsize * f[statvfs.F_BFREE]) /1024 /1024 /1024
+                    self.wfile.write('[{"res":"%d GB"}]' % freebytes)
+                elif key == 'peers':
+                    self.send_header("Content-Type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write('[{"res":[')
+                    count = 0
+                    for s in self.server.peers.values():
+                        if count > 0: self.wfile.write(',')
+                        addr = None
+                        if s.addr is not None: addr = s.addr
+                        if (addr is None) and (self.server.nametoaddr[s.host] is not None): addr = self.server.nametoaddr[s.host]
+                        self.wfile.write('{"service_name":"%s","host":"%s","addr":"%s","ssh_port":"%s","bt_port":"%s"}' % (s.service_name, s.host, addr, str(s.ssh_port), str(s.bt_port)))
+                        if count < 1: count += 1
+                    self.wfile.write(']}]')
+                else:
+                    self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
+            else:
+                if '/'==self.path: self.path = '/index.html'
+                try:
+                    pathparts = self.path.split('/')
+                    newpath = os.sep.join(pathparts)
+                    # print 'os.curdir',os.curdir
+                    # print 'newpath',newpath
+                    f = open(os.path.join(os.curdir, newpath[1:]))
+                    self.send_response(200)
+                    if self.path.endswith('.html'):
+                        self.send_header('Content-type','text/html')
+                    elif self.path.endswith('.js'):
+                        self.send_header('Content-type','text/javascript')
+                    self.end_headers()
+                    self.wfile.write(f.read())
+                    f.close()
+                    return
+                except IOError:
+                    self.send_error(404,'File Not Found: %s' % self.path)
+        finally:
+            # print "the thread answering the request has been terminated"
+            pass
 
 class Peer(object):
     def __init__(self, service_name, host, addr=None, ssh_port=None, bt_port=None):
@@ -41,22 +138,35 @@ class Peer(object):
 
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy=False, create=False):
-        self.bootstrapping = True
-        self.LOGLEVEL = loglevel
+        self.name = name
+        self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.webdir = webdir
         self.webip = webip
         self.webport = webport
+        os.chdir(self.webdir)
+        self.httpd = webserver((self.webip, self.webport), webhandler)
+        self.httpd.api = {'webdir':webdir,
+                'webip':webip,
+                'webport':str(webport),
+                'lazy':str(lazy),
+                'name':name,
+                'sshport':str(sshport),
+                'btport':str(btport),
+                'root':root,
+                'servicename':self.bj_name,
+                'hostname':socket.gethostname()
+                }
+        self.httpd.bt_handles = {}
+        self.httpd.peers = {}
+        self.httpd.nametoaddr = {}
+        self.bootstrapping = True
+        self.LOGLEVEL = loglevel
         self.lazy = lazy
-        self.name = name
-        self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.root = os.path.realpath(root)
         self.repodb = os.path.join(self.root, u'gitdb')
         self.tmp = os.path.join(self.root, 'tmp')
         self.dat = os.path.join(self.root, 'dat')
         self.ssh_port = sshport
-        self.peers = {}
-        self.nametoaddr = {}
-        self.bt_handles = {}
         self.bt_in_progress = set()
         self.should_push = False
         self.pull_from = {}
@@ -106,8 +216,8 @@ class DelugeFS(LoggingMixIn, Operations):
         if create:
             if os.listdir(self.root):
                 raise Exception('--create specified, but %s is not empty' % self.root)
-            if self.peers:
-                raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.peers), 's' if len(self.peers)>1 else '', self.name))
+            if self.httpd.peers:
+                raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.httpd.peers), 's' if len(self.httpd.peers)>1 else '', self.name))
             if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
             self.repo.init()
             os.mkdir(os.path.join(self.repodb, '.__delugefs__'))
@@ -124,16 +234,16 @@ class DelugeFS(LoggingMixIn, Operations):
             else:
                 if os.listdir(self.root):
                     raise Exception('root %s is not empty, but no cluster was found' % self.root)
-                if not self.peers:
+                if not self.httpd.peers:
                     raise Exception('--create not specified, no repo exists at %s and no peers of cluster "%s" found' % (self.root, self.name))
                 try:
-                    apeer = self.peers[iter(self.peers).next()]
+                    apeer = self.httpd.peers[iter(self.httpd.peers).next()]
                     if not os.path.isdir(self.repodb): os.mkdir(self.repodb)
                     cloned = False;
                     while cloned == False:
-                        if (apeer.ssh_port is not None) and (self.nametoaddr[apeer.host] is not None):
-                            print 'clone ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[apeer.host], apeer.ssh_port, self.name)
-                            self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[apeer.host], apeer.ssh_port, self.name), self.repodb)
+                        if (apeer.ssh_port is not None) and (self.httpd.nametoaddr[apeer.host] is not None):
+                            print 'clone ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[apeer.host], apeer.ssh_port, self.name)
+                            self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[apeer.host], apeer.ssh_port, self.name), self.repodb)
                             cloned = True
                         time.sleep(1)
                     del cloned
@@ -184,8 +294,8 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __add_peer(self, service_name, host, addr=None, ssh_port=None, bt_port=None):
         print 'adding peer'
-        if not servicename in self.peers:
-            self.peers[servicename] = Peer(servicename, host, addr, ssh_port, bt_port)
+        if not servicename in self.httpd.peers:
+            self.httpd.peers[servicename] = Peer(servicename, host, addr, ssh_port, bt_port)
 
     def __add_torrent(self, torrent, path):
         uid = torrent['info']['name']
@@ -193,12 +303,12 @@ class DelugeFS(LoggingMixIn, Operations):
         dat_file = os.path.join(self.dat, uid[:2], uid)
         if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
-        for peer in self.peers.values():
-            if (peer.bt_port is not None) and (self.nametoaddr[peer.host] is not None):
-                if self.LOGLEVEL > 3: print 'adding peer:', (self.nametoaddr[peer.host], peer.bt_port)
-                h.connect_peer((self.nametoaddr[peer.host], peer.bt_port), 0)
+        for peer in self.httpd.peers.values():
+            if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
+                if self.LOGLEVEL > 3: print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.bt_port)
+                h.connect_peer((self.httpd.nametoaddr[peer.host], peer.bt_port), 0)
         if self.LOGLEVEL > 3: print 'added', uid
-        self.bt_handles[path] = h
+        self.httpd.bt_handles[path] = h
         self.bt_in_progress.add(path)
 
     def __add_torrent_and_wait(self, path, t):
@@ -210,12 +320,12 @@ class DelugeFS(LoggingMixIn, Operations):
             with open(dat_file,'wb') as f:
                 pass
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
-        for peer in self.peers.values():
-            if (peer.bt_port is not None) and (self.nametoaddr[peer.host] is not None):
-                print 'adding peer:', (self.nametoaddr[peer.host], peer.bt_port)
-                h.connect_peer((self.nametoaddr[peer.host], peer.bt_port), 0)
+        for peer in self.httpd.peers.values():
+            if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
+                print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.bt_port)
+                h.connect_peer((self.httpd.nametoaddr[peer.host], peer.bt_port), 0)
         print 'added ', path
-        self.bt_handles[path] = h
+        self.httpd.bt_handles[path] = h
         self.bt_in_progress.add(path)
         print 'file created'
 
@@ -225,9 +335,9 @@ class DelugeFS(LoggingMixIn, Operations):
             return
         if not (flags & pybonjour.kDNSServiceFlagsAdd):
             #print 'browse_callback service removed', sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain
-            if serviceName in self.peers:
-                del self.peers[serviceName]
-            print 'self.peers', self.peers
+            if serviceName in self.httpd.peers:
+                del self.httpd.peers[serviceName]
+            print 'self.httpd.peers', self.httpd.peers
             return
         resolve_sdRef = pybonjour.DNSServiceResolve(0, interfaceIndex, serviceName, regtype, replyDomain, self.__bonjour_resolve_callback)
         try:
@@ -260,13 +370,13 @@ class DelugeFS(LoggingMixIn, Operations):
                 return
             servicename = fullname[:fullname.index('.')]
             print 'servicename', servicename
-            if not servicename in self.peers:
-                self.peers[servicename] = Peer(servicename, hosttarget)
+            if not servicename in self.httpd.peers:
+                self.httpd.peers[servicename] = Peer(servicename, hosttarget)
             if '._ssh._tcp.' in fullname:
-                self.peers[servicename].ssh_port = port
+                self.httpd.peers[servicename].ssh_port = port
             if '._delugefs._tcp.' in fullname:
-                self.peers[servicename].bt_port = port
-            print 'self.peers', self.peers
+                self.httpd.peers[servicename].bt_port = port
+            print 'self.httpd.peers', self.httpd.peers
             query_sdRef = pybonjour.DNSServiceQueryRecord(interfaceIndex = interfaceIndex,
                                                             fullname = hosttarget,
                                                             rrtype = pybonjour.kDNSServiceType_A,
@@ -288,9 +398,9 @@ class DelugeFS(LoggingMixIn, Operations):
         if errorCode == pybonjour.kDNSServiceErr_NoError:
             if self.LOGLEVEL > 3: print '  IP         =', socket.inet_ntoa(rdata)
             if self.LOGLEVEL > 3: print 'fullname ', fullname
-            self.nametoaddr[fullname] = socket.inet_ntoa(rdata)
-            if fullname in self.nametoaddr:
-                self.nametoaddr[fullname] = socket.inet_ntoa(rdata)
+            self.httpd.nametoaddr[fullname] = socket.inet_ntoa(rdata)
+            if fullname in self.httpd.nametoaddr:
+                self.httpd.nametoaddr[fullname] = socket.inet_ntoa(rdata)
                 self.pull_from[fullname] = True
                 queried.append(True)
                 return 'pulling from new peer', fullname
@@ -306,7 +416,7 @@ class DelugeFS(LoggingMixIn, Operations):
             uid_peers = collections.defaultdict(set)
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
-#            for peer_id, peer in self.peers.items():
+#            for peer_id, peer in self.httpd.peers.items():
 #                for s in peer.server.__get_active_info_hashes():
 #                    counter[s] += 1
 #                    uid_peers[s].add(peer_id)
@@ -314,7 +424,7 @@ class DelugeFS(LoggingMixIn, Operations):
 #                peer_free_space[peer_id] = peer.free_space
             if self.LOGLEVEL > 2: print 'counter', counter
             if self.LOGLEVEL > 2: print 'peer_free_space', peer_free_space
-            if len(self.peers.items()) < 1:
+            if len(self.httpd.peers.items()) < 1:
                 if self.LOGLEVEL > 2: print "can't do anything, since i'm the only peer!"
                 return
 #            fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
@@ -344,8 +454,8 @@ class DelugeFS(LoggingMixIn, Operations):
 #                            if '__self__'==best_peer_id:
                         self.__please_mirror(path)
 #                            else:
-#                                self.peers[best_peer_id].server.__please_mirror(path)
-#                                self.peers[best_peer_id].free_space -= size
+#                                self.httpd.peers[best_peer_id].server.__please_mirror(path)
+#                                self.httpd.peers[best_peer_id].free_space -= size
 #                            break
                     if counter[uid] > 3:
                         if self.LOGLEVEL > 2: print 'uid_peers', uid_peers
@@ -355,12 +465,12 @@ class DelugeFS(LoggingMixIn, Operations):
 #                            if '__self__'==best_peer_id:
 #                                if self.__please_stop_mirroring(path): break
 #                            else:
-#                                if self.peers[best_peer_id].server.__please_stop_mirroring(path): break
-#                                self.peers[best_peer_id].free_space += size
+#                                if self.httpd.peers[best_peer_id].server.__please_stop_mirroring(path): break
+#                                self.httpd.peers[best_peer_id].free_space += size
                         if self.LOGLEVEL > 2: print '__please_stop_mirroring', path, 'sent to'#, best_peer_id
         except Exception as e:
             traceback.print_exc()
-        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
+        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.httpd.peers))))
 
     def __finalize(self, path, uid):
         if self.LOGLEVEL > 2: print 'finalize', path, uid
@@ -416,54 +526,57 @@ class DelugeFS(LoggingMixIn, Operations):
             raise e
 
     def __get_active_info_hashes(self):
-        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.peers))))
+        self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.httpd.peers))))
         active_info_hashes = []
-        for k,h in self.bt_handles.items():
+        for k,h in self.httpd.bt_handles.items():
             if not h: continue
             try:
                 active_info_hashes.append(str(h.get_torrent_info().name()))
             except:
                 traceback.print_exc()
-                del self.bt_handles[k]
+                del self.httpd.bt_handles[k]
         if self.LOGLEVEL > 2: print 'active_info_hashes', active_info_hashes
         return active_info_hashes
 
     def __get_free_space(self):
         f = os.statvfs(self.root)
-        return f[statvfs.F_BSIZE] * f[statvfs.F_BFREE]
+        bsize = f[statvfs.F_BSIZE]
+        if bsize > 4096: bsize = 512
+        freebytes = (bsize * f[statvfs.F_BFREE])
+        return freebytes
 
     def __keep_pushing(self):
         while True:
-            for peer in self.peers.values():
+            for peer in self.httpd.peers.values():
                 if peer.host in self.pull_from:
-                    if self.pull_from[peer.host] and (self.bootstrapping == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.nametoaddr[peer.host] is not None):
+                    if self.pull_from[peer.host] and (self.bootstrapping == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
                         # only pull if finished bootstrapping
                         # only pull if delugefs detected
-                        print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (self.nametoaddr[peer.host], peer.ssh_port, self.name, peer.host)
-                        self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[peer.host], peer.ssh_port, self.name),
+                        print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name, peer.host)
+                        self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name),
                                     'refs/heads/master:refs/remotes/%s/master' % (peer.host))
                         self.pull_from[peer.host] = False
             if self.should_push:
                 # set default to not pushed if not exist
-                for peer in self.peers.values():
+                for peer in self.httpd.peers.values():
                     if not peer in self.pushed_to:
                         self.pushed_to[peer] = False
                 # do the push
-                for peer in self.peers.values():
-                    if (self.pushed_to[peer] == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.nametoaddr[peer.host] is not None):
-                        print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (self.nametoaddr[peer.host], peer.ssh_port, self.name)
-                        self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.nametoaddr[peer.host], peer.ssh_port, self.name),
+                for peer in self.httpd.peers.values():
+                    if (self.pushed_to[peer] == False) and (self.repo is not None) and (peer.ssh_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
+                        print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name)
+                        self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name),
                                         'master:refs/heads/tomerge')
                         self.pushed_to[peer] = True
                 # set to false...
                 self.should_push = False
                 # but if any are true, set to keep_pushing
-                for peer in self.peers.values():
+                for peer in self.httpd.peers.values():
                     if self.pushed_to[peer] == False:
                         self.should_push = True
                 # if all set to false, reset pushed_to
                 if self.should_push == False:
-                    for peer in self.peers.values():
+                    for peer in self.httpd.peers.values():
                         self.pushed_to[peer] = False
             time.sleep(1)
 
@@ -492,8 +605,8 @@ class DelugeFS(LoggingMixIn, Operations):
                     h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.dat, uid[:2])})
                     #h = self.bt_session.add_torrent(info, os.path.join(self.dat, uid[:2]), storage_mode=lt.storage_mode_t.storage_mode_sparse)
                     if self.LOGLEVEL > 3: print 'added ', fn, '(%s)'%uid
-                    self.bt_handles[fn[len(self.repodb):]] = h
-        if self.LOGLEVEL > 3: print 'self.bt_handles', self.bt_handles
+                    self.httpd.bt_handles[fn[len(self.repodb):]] = h
+        if self.LOGLEVEL > 3: print 'self.httpd.bt_handles', self.httpd.bt_handles
 
     def __monitor(self):
         while True:
@@ -527,7 +640,7 @@ class DelugeFS(LoggingMixIn, Operations):
             print 'i would have stopped', path
             return False
 
-            h = self.bt_handles[path]
+            h = self.httpd.bt_handles[path]
             if h:
                 uid = h.get_torrent_info().name()
                 self.bt_session.remove_torrent(h)
@@ -591,18 +704,12 @@ class DelugeFS(LoggingMixIn, Operations):
             browse_sdRef.close()
 
     def __start_webui(self):
-        os.chdir(self.webdir)
-        webhandler = SimpleHTTPServer.SimpleHTTPRequestHandler
-        map = webhandler.extensions_map
-        map[".log"] = "text/plain"
-        webhandler.extensions_map = map
-        self.httpd = SocketServer.TCPServer((self.webip, self.webport), webhandler)
         self.httpd.serve_forever()
 
     def __write_active_torrents(self):
         try:
             with open(os.path.join(self.repodb, '.__delugefs__', 'active_torrents'), 'w') as f:
-                for path, h in self.bt_handles.items():
+                for path, h in self.httpd.bt_handles.items():
                     s = h.status()
                     state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
                     f.write('%s %s is %.2f%% complete (down: %.1f kb/s up: %.1f kB/s peers: %d) %s\n' % \
@@ -734,7 +841,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if self.LOGLEVEL > 3: print 'path in self.bt_in_progress', path in self.bt_in_progress
             if path in self.bt_in_progress:
                 if self.LOGLEVEL > 3: print '%s in progress' % (path)
-                h = self.bt_handles[path]
+                h = self.httpd.bt_handles[path]
                 if not h.is_seed():
                     torrent_info = h.get_torrent_info()
                     piece_length = torrent_info.piece_length()
@@ -776,7 +883,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 # moved to __finalize_callback
                 # del self.open_files[path]
             if path in self.bt_in_progress:
-                h = self.bt_handles[path]
+                h = self.httpd.bt_handles[path]
                 priorities = h.piece_priorities()
                 #h.prioritize_pieces([0 for x in priorities])
             return 0
@@ -962,6 +1069,7 @@ if __name__ == '__main__':
         loglevel = 0
     server = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy=config.get('lazy'), create=config.get('create'))
     if 'mount' in config:
+        server.httpd.api['mount'] = config['mount']
         if not os.path.exists(config['mount']):
             os.mkdir(config['mount'])
         fuse = FUSE(server, config['mount'], foreground=True) #, debug=True) #, allow_other=True)

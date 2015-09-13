@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>DelugeFS - Status</title>
+        <meta charset="UTF-8">
     </head>
     <body class="theme-atom">
         <div class="nav">
@@ -78,7 +79,7 @@
             </div>
         </div>
         <div class="container border float-left">
-            <h2>SSH Peers</h2>
+            <h2>Peers<span id="peercount"></span></h2>
                 <div class="form">
                     <h3>Add A New Peer</h3>
                     <form>
@@ -87,12 +88,12 @@
                         <button>Add Peer</button>
                     </form>
                 </div>
-            <div class="data">
+            <div class="data" id="peers">
                 Todo...
             </div>
         </div>
         <div class="container border float-left">
-            <h2>Torrent Peers</h2>
+            <h2>Torrent Peers<span id="btpeercount"></span></h2>
                 <div class="form">
                     <h3>Add A Torrent Peer</h3>
                     <form>
@@ -101,7 +102,7 @@
                         <button>Add Peer</button>
                     </form>
                 </div>
-            <div class="data">
+            <div class="data" id="btpeers">
                 Todo...
             </div>
         </div>
@@ -119,9 +120,13 @@
                 Todo...
             </div>
         </div>
-        <div class="container border clear">
-            <h2>Active Torrents</h2>
+        <div class="clear container border float-left">
+            <h2>Active Torrents<span id="activecount"></span></h2>
             <div class="data" id="activetorrents"></div>
+        </div>
+        <div class="clear container border float-left">
+            <h2>Seeding Torrents<span id="seedingcount"></span></h2>
+            <div class="data" id="seedingtorrents"></div>
         </div>
 
         <style type="text/css">
@@ -213,6 +218,13 @@
             body.theme-atom .hilite {
                 color: #C678DD;
             }
+            body.theme-atom th {
+                color: #4C5062;
+                font-family: "Lucida Grande", Arial, sans-serif;
+                font-size: 0.8em;
+                font-weight: 300;
+                letter-spacing: 0.05em;
+            }
         </style>
         <style type="text/css">
             body {
@@ -224,7 +236,6 @@
                 padding: 0.5em;
             }
             .container {
-                min-width: 20%;
                 margin: 0px 0px 1em 1em;
                 padding: 0.5em;
             }
@@ -242,16 +253,16 @@
             }
             div.table div {
                 float: left;
-                margin: 0 0 0 1em;
+                margin: 0 0 1em 1em;
             }
             div.table div.label {
                 clear: both;
-                margin: 0 0 1em 0;
+                margin: 0 0 0 0;
             }
             .form h3 {
                 margin: 0;
             }
-            .label, .form {
+            .form {
                 margin: 0 0 1em 0;
             }
             input, button {
@@ -260,11 +271,13 @@
             input.port {
                 width: 5em;
             }
+            td, th {
+                padding: 0.5em 1em;
+            }
         </style>
+        <script type="text/javascript" src="/js/jquery-2.1.4.js"></script>
         <script type="text/javascript">
             id_to_populate = [
-                "version",
-                "hostname",
                 "sshport",
                 "btport",
                 "webip",
@@ -273,10 +286,133 @@
                 "lazy",
                 "root",
                 "mount",
-                "freespace",
                 "name",
-                "activetorrents"
-            ]
+                "version",
+                "hostname",
+                "freespace",
+                "activetorrents",
+                "peers"
+            ];
+            $(document).ready(function() {
+                $.each(id_to_populate, function(k,v) {
+                    get_info( v );
+                });
+            });
+            function get_info(id) {
+                $.ajax({
+                    url: "/api/v1/" + id,
+                    dataType: "json"
+                }).success(function(data) {
+                    $.each(data, function(k,v) {
+                        set_info('#'+id, v.res);
+                        if (v.res2) {
+                            set_info2('#'+id, v.res2);
+                        }
+                    });
+                });
+            }
+            function set_info2(id, val) {
+                if ($.isArray(val)) {
+                    if (id=='#activetorrents') {
+                        btpeercount = 0;
+                        btpeertable = $('<table>');
+                        btpeertable.append('<tr>\
+                            <th>IP</th><th>BT</th>\
+                        </tr>');
+                        $.each(val, function(k,v) {
+                            row = $('<tr>');
+                            row.append($('<td>'+v['ip']+'</td>'));
+                            //row.append($('<td>'+v['bt_port']+'</td>'));
+                            btpeertable.append(row);
+                            btpeercount++;
+                        });
+                        $('#btpeers').empty().append(btpeertable);
+                        $('#btpeercount').empty().append('<span>: '+btpeercount+'</span>');
+                    }
+                } else {
+                    el = $('<span>'+val+'</span>');
+                    $(id).empty().append(el);
+                }
+            }
+            function set_info(id, val) {
+                if ($.isArray(val)) {
+                    if (id=='#peers') {
+                        peercount = 0;
+                        peertable = $('<table>');
+                        peertable.append('<tr>\
+                            <th>Host</th><th>IP</th><th>SSH</th><th>BT</th>\
+                        </tr>');
+                        $.each(val, function(k,v) {
+                            row = $('<tr title="'+v['service_name']+'">');
+                            row.append($('<td>'+v['host']+'</td>'));
+                            row.append($('<td>'+v['addr']+'</td>'));
+                            row.append($('<td>'+v['ssh_port']+'</td>'));
+                            row.append($('<td>'+v['bt_port']+'</td>'));
+                            peertable.append(row);
+                            peercount++;
+                        });
+                        $(id).empty().append(peertable);
+                        $('#peercount').empty().append('<span>: '+peercount+'</span>');
+                    } else if (id=='#activetorrents') {
+                        activecount = 0;
+                        activetable = $('<table>');
+                        activetable.append('<tr>\
+                            <th>Path</th><th>Progress</th><th>Down</th><th>Up</th><th>Peers</th><th>State</th>\
+                        </tr>');
+                        seedingcount = 0;
+                        seedingtable = $('<table>');
+                        seedingtable.append('<tr>\
+                            <th>Path</th><th>Down</th><th>Up</th><th>Peers</th>\
+                        </tr>');
+                        $.each(val, function(k,v) {
+                            progress = '';
+                            down = '';
+                            up = '';
+                            peers = '';
+                            state = '';
+                            if (v['state']!='seeding') {
+                                row = $('<tr title="'+v['path']+'">');
+                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                if (v['progress']!=100) progress = v['progress'];
+                                row.append($('<td>'+progress+'</td>'));
+                                if (v['down']!=0) down = v['down'];
+                                row.append($('<td>'+down+'</td>'));
+                                if (v['up']!=0) up = v['up'];
+                                row.append($('<td>'+up+'</td>'));
+                                if (v['peers']!=0) peers = v['peers'];
+                                row.append($('<td>'+peers+'</td>'));
+                                if (v['state']!='seeding') state = v['state'];
+                                row.append($('<td>'+state+'</td>'));
+                                activetable.append(row);
+                                activecount++;
+                            } else {
+                                row = $('<tr title="'+v['path']+'">');
+                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                //if (v['progress']!=100) progress = v['progress'];
+                                //row.append($('<td>'+progress+'</td>'));
+                                if (v['down']!=0) down = v['down'];
+                                row.append($('<td>'+down+'</td>'));
+                                if (v['up']!=0) up = v['up'];
+                                row.append($('<td>'+up+'</td>'));
+                                if (v['peers']!=0) peers = v['peers'];
+                                row.append($('<td>'+peers+'</td>'));
+                                //if (v['state']!='seeding') state = v['state'];
+                                //row.append($('<td>'+state+'</td>'));
+                                seedingtable.append(row);
+                                seedingcount++;
+                            }
+                        });
+                        $(id).empty().append(activetable);
+                        $('#activecount').empty().append('<span>: '+activecount+'</span>');
+                        $('#seedingtorrents').append(seedingtable);
+                        $('#seedingcount').empty().append('<span>: '+seedingcount+'</span>');
+                    }
+                } else if ($.isXMLDoc(val)) {
+                } else {
+                    el = $('<span>'+val+'</span>');
+                    $(id).empty().append(el);
+                }
+            }
         </script>
     </body>
 </html>
