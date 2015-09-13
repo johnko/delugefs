@@ -282,6 +282,9 @@
                 padding: 0.5em 1em;
                 white-space: nowrap;
             }
+            td.number {
+                text-align: right;
+            }
             .toggle {
                 float: right;
             }
@@ -365,7 +368,7 @@
                         $.each(val, function(k,v) {
                             row = $('<tr>');
                             row.append($('<td>'+v['ip']+'</td>'));
-                            row.append($('<td>'+v['bt_port']+'</td>'));
+                            row.append($('<td class="number">'+v['bt_port']+'</td>'));
                             btpeertable.append(row);
                             btpeercount++;
                         });
@@ -389,8 +392,8 @@
                             row = $('<tr title="'+v['service_name']+'">');
                             row.append($('<td>'+v['host']+'</td>'));
                             row.append($('<td>'+v['addr']+'</td>'));
-                            row.append($('<td>'+v['ssh_port']+'</td>'));
-                            row.append($('<td>'+v['bt_port']+'</td>'));
+                            row.append($('<td class="number">'+v['ssh_port']+'</td>'));
+                            row.append($('<td class="number">'+v['bt_port']+'</td>'));
                             peertable.append(row);
                             peercount++;
                         });
@@ -439,7 +442,7 @@
                                 row = $('<tr title="'+v['hash_name']+'">');
                                 row.append($('<td>'+v['path']+'</td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
-                                row.append($('<td>'+progress+'</td>'));
+                                row.append($('<td class="number">'+progress+'</td>'));
                                 /*
                                 if (v['down']!=0) down = v['down'];
                                 row.append($('<td>'+down+'</td>'));
@@ -456,13 +459,13 @@
                                 row = $('<tr title="'+v['hash_name']+'">');
                                 row.append($('<td>'+v['path']+'</td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
-                                row.append($('<td>'+progress+'</td>'));
+                                row.append($('<td class="number">'+progress+'</td>'));
                                 if (v['down']!=0) down = v['down'];
-                                row.append($('<td>'+down+'</td>'));
+                                row.append($('<td class="number">'+down+'</td>'));
                                 if (v['up']!=0) up = v['up'];
-                                row.append($('<td>'+up+'</td>'));
+                                row.append($('<td class="number">'+up+'</td>'));
                                 if (v['peers']!=0) peers = v['peers'];
-                                row.append($('<td>'+peers+'</td>'));
+                                row.append($('<td class="number">'+peers+'</td>'));
                                 if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
                                 row.append($('<td>'+state+'</td>'));
                                 activetable.append(row);
