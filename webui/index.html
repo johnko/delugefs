@@ -121,16 +121,20 @@
             </div>
         </div>
         <div class="clear container border float-left">
-            <h2>Active Torrents<span id="activecount"></span></h2>
+            <h2>Active<span id="activecount"></span></h2>
             <div class="data" id="activetorrents"></div>
         </div>
         <div class="container border float-left">
-            <h2>Queued Torrents<span id="qingcount"></span></h2>
+            <h2>Queued<span id="qingcount"></span></h2>
             <div class="data" id="qingtorrents"></div>
         </div>
         <div class="container border float-left">
-            <h2>Seeding Torrents<span id="seedingcount"></span></h2>
+            <h2>Seeding<span id="seedingcount"></span></h2>
             <div class="data" id="seedingtorrents"></div>
+        </div>
+        <div class="container border float-left">
+            <h2>Sleeping<span id="sleepingcount"></span></h2>
+            <div class="data" id="sleepingtorrents"></div>
         </div>
 
         <style type="text/css">
@@ -369,8 +373,13 @@
                         </tr>');
                         qingcount = 0;
                         qingtable = $('<table>');
-                        activetable.append('<tr>\
+                        qingtable.append('<tr>\
                             <th>Path</th><th>Progress</th><th>State</th>\
+                        </tr>');
+                        sleepingcount = 0;
+                        sleepingtable = $('<table>');
+                        sleepingtable.append('<tr>\
+                            <th>Path</th>\
                         </tr>');
                         seedingcount = 0;
                         seedingtable = $('<table>');
@@ -398,7 +407,7 @@
                                 row.append($('<td>'+state+'</td>'));
                                 activetable.append(row);
                                 activecount++;
-                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)) {
+                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
                                 row = $('<tr title="'+v['path']+'">');
                                 row.append($('<td>'+v['hash_name']+'</td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
@@ -415,6 +424,23 @@
                                 row.append($('<td>'+state+'</td>'));
                                 qingtable.append(row);
                                 qingcount++;
+                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
+                                row = $('<tr title="'+v['path']+'">');
+                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                /*
+                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
+                                row.append($('<td>'+progress+'</td>'));
+                                if (v['down']!=0) down = v['down'];
+                                row.append($('<td>'+down+'</td>'));
+                                if (v['up']!=0) up = v['up'];
+                                row.append($('<td>'+up+'</td>'));
+                                if (v['peers']!=0) peers = v['peers'];
+                                row.append($('<td>'+peers+'</td>'));
+                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
+                                row.append($('<td>'+state+'</td>'));
+                                */
+                                sleepingtable.append(row);
+                                sleepcount++;
                             } else {
                                 row = $('<tr title="'+v['path']+'">');
                                 row.append($('<td>'+v['hash_name']+'</td>'));
@@ -442,6 +468,8 @@
                         $('#qingcount').empty().append('<span>: '+qingcount+'</span>');
                         $('#seedingtorrents').empty().append(seedingtable);
                         $('#seedingcount').empty().append('<span>: '+seedingcount+'</span>');
+                        $('#sleepingtorrents').empty().append(sleepingtable);
+                        $('#sleepingcount').empty().append('<span>: '+sleepingcount+'</span>');
                     }
                 } else if ($.isXMLDoc(val)) {
                 } else {
