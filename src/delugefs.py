@@ -48,7 +48,6 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if key in self.server.api:
                     s = self.server.api[key]
                     self.send_header("Content-Type", "text/plain")
-                    self.send_header("Content-Length", str(len(s)))
                     self.end_headers()
                     self.wfile.write('[{"res":"%s"}]' % s)
                 elif key == 'activetorrents':
