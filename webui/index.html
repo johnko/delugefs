@@ -389,11 +389,15 @@
                             <th>Host</th><th>IP</th><th>SSH</th><th>BT</th>\
                         </tr>');
                         $.each(val, function(k,v) {
+                            sshport = '';
+                            btport = '';
                             row = $('<tr title="'+v['service_name']+'">');
                             row.append($('<td>'+v['host']+'</td>'));
                             row.append($('<td>'+v['addr']+'</td>'));
-                            row.append($('<td class="number">'+v['ssh_port']+'</td>'));
-                            row.append($('<td class="number">'+v['bt_port']+'</td>'));
+                            if (v['ssh_port']!='None') sshport = v['ssh_port'];
+                            row.append($('<td class="number">'+sshport+'</td>'));
+                            if (v['bt_port']!='None') btport = v['bt_port'];
+                            row.append($('<td class="number">'+btport+'</td>'));
                             peertable.append(row);
                             peercount++;
                         });
