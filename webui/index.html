@@ -121,14 +121,17 @@
             </div>
         </div>
         <div class="clear container border float-left">
+            <button id="toggleactive" class="toggle">x</button>
             <h2>Active<span id="activecount"></span></h2>
             <div class="data" id="activetorrents"></div>
         </div>
         <div class="container border float-left">
+            <button id="toggleqing" class="toggle">x</button>
             <h2>Queued<span id="qingcount"></span></h2>
             <div class="data" id="qingtorrents"></div>
         </div>
         <div class="container border float-left">
+            <button id="togglesleeping" class="toggle">x</button>
             <h2>Sleeping<span id="sleepingcount"></span></h2>
             <div class="data" id="sleepingtorrents"></div>
         </div>
@@ -278,6 +281,9 @@
             td, th {
                 padding: 0.5em 1em;
             }
+            .toggle {
+                float: right;
+            }
         </style>
         <script type="text/javascript" src="/js/jquery-2.1.4.js"></script>
         <script type="text/javascript">
@@ -301,10 +307,37 @@
                 $.each(id_to_populate, function(k,v) {
                     get_info( v );
                 });
-                setTimeout(function(){ refresh_info(); }, 5000);
+                setTimeout(function() { refresh_info(); }, 5000);
             }
             $(document).ready(function() {
                 refresh_info();
+                $('#toggleactive').click(function() {
+                    if ($('#toggleactive').html()=='x') {
+                        $('#toggleactive').html('+');
+                        $('#activetorrents').hide();
+                    } else {
+                        $('#toggleactive').html('x')
+                        $('#activetorrents').show();
+                    }
+                });
+                $('#toggleqing').click(function() {
+                    if ($('#toggleqing').html()=='x') {
+                        $('#toggleqing').html('+');
+                        $('#qingtorrents').hide();
+                    } else {
+                        $('#toggleqing').html('x')
+                        $('#qingtorrents').show();
+                    }
+                });
+                $('#togglesleeping').click(function() {
+                    if ($('#togglesleeping').html()=='x') {
+                        $('#togglesleeping').html('+');
+                        $('#sleepingtorrents').hide();
+                    } else {
+                        $('#togglesleeping').html('x')
+                        $('#sleepingtorrents').show();
+                    }
+                });
             });
             function get_info(id) {
                 $.ajax({
