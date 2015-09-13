@@ -293,10 +293,14 @@
                 "activetorrents",
                 "peers"
             ];
-            $(document).ready(function() {
+            function refresh_info() {
                 $.each(id_to_populate, function(k,v) {
                     get_info( v );
                 });
+                setTimeout(function(){ refresh_info(); }, 5000);
+            }
+            $(document).ready(function() {
+                refresh_info();
             });
             function get_info(id) {
                 $.ajax({
@@ -404,7 +408,7 @@
                         });
                         $(id).empty().append(activetable);
                         $('#activecount').empty().append('<span>: '+activecount+'</span>');
-                        $('#seedingtorrents').append(seedingtable);
+                        $('#seedingtorrents').empty().append(seedingtable);
                         $('#seedingcount').empty().append('<span>: '+seedingcount+'</span>');
                     }
                 } else if ($.isXMLDoc(val)) {
