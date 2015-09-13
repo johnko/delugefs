@@ -69,8 +69,9 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                             p = h.get_peer_info()
                             # print 'p',p
                             for i in p:
-                                print 'i',i
-                                ip = i.ip
+                                # print 'i',i
+                                # ip = i.ip
+                                ip = '%s:%d' % (i.ip[0],i.ip[1]) # ip and port
                                 print 'ip',ip
                                 if ip not in peerip:
                                     peerip.add(ip)
