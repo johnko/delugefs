@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.1.7'
+APP_VERSION='0.1.8'
 
 
 
@@ -157,7 +157,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.webport = webport
         os.chdir(self.webdir)
         self.httpd = webserver((self.webip, self.webport), webhandler)
-        print 'webserver listening on: http:\/\/%s:%d\/' % (self.webip, self.webport)
+        print 'webserver listening on: http://%s:%d/' % (self.webip, self.webport)
         self.httpd.api = {'webdir':webdir,
                 'webip':webip,
                 'webport':str(webport),
