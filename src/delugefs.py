@@ -20,6 +20,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 '''
 
+
+
+
+APP_VERSION='150913-192558'
+
+
+
+
 import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
@@ -141,7 +149,7 @@ class Peer(object):
         #TODO replace self.free_space = self.server.__get_free_space()
 
 class DelugeFS(LoggingMixIn, Operations):
-    def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy=False, create=False):
+    def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy, create=False):
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
         self.webdir = webdir
@@ -158,7 +166,9 @@ class DelugeFS(LoggingMixIn, Operations):
                 'btport':str(btport),
                 'root':root,
                 'servicename':self.bj_name,
-                'hostname':socket.gethostname()
+                'hostname':socket.gethostname(),
+                'gitlog':'',
+                'version':APP_VERSION
                 }
         self.httpd.bt_handles = {}
         self.httpd.peers = {}
@@ -229,6 +239,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 f.write(self.name)
             self.repo.add(cnfn)
             self.repo.commit(m='repo created')
+            self.__get_git_log()
         else:
             if os.path.isfile(cnfn):
                 with open(cnfn, 'r') as f:
@@ -248,6 +259,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         if (apeer.ssh_port is not None) and (self.httpd.nametoaddr[apeer.host] is not None):
                             print 'clone ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[apeer.host], apeer.ssh_port, self.name)
                             self.repo.clone('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[apeer.host], apeer.ssh_port, self.name), self.repodb)
+                            self.__get_git_log()
                             cloned = True
                         time.sleep(1)
                     del cloned
@@ -520,6 +532,7 @@ class DelugeFS(LoggingMixIn, Operations):
             os.rename(tmp_fn, os.path.join(dat_dir, uid))
             #print 'committing', self.repodb+path
             self.repo.commit(m='wrote '+path)
+            self.__get_git_log()
             self.should_push = True
             self.__add_torrent(tdata, path)
             del self.open_files[path]
@@ -547,6 +560,12 @@ class DelugeFS(LoggingMixIn, Operations):
         freebytes = (bsize * f[statvfs.F_BFREE])
         return freebytes
 
+    def __get_git_log(self):
+        self.repo.log('-1', '--pretty=format:"%%h"', _out=self.__get_git_log_callback)
+
+    def __get_git_log_callback(self, line):
+        self.httpd.api['gitlog'] = line.strip()
+
     def __keep_pushing(self):
         while True:
             for peer in self.httpd.peers.values():
@@ -557,6 +576,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         print 'self.repo.pull ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb refs/heads/master:refs/remotes/%s/master' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name, peer.host)
                         self.repo.pull('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name),
                                     'refs/heads/master:refs/remotes/%s/master' % (peer.host))
+                        self.__get_git_log()
                         self.pull_from[peer.host] = False
             if self.should_push:
                 # set default to not pushed if not exist
@@ -569,6 +589,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         print 'self.repo.push ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb master:refs/heads/tomerge' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name)
                         self.repo.push('ssh://%s:%i/usr/home/delugefs/symlinks/%s/gitdb' % (self.httpd.nametoaddr[peer.host], peer.ssh_port, self.name),
                                         'master:refs/heads/tomerge')
+                        self.__get_git_log()
                         self.pushed_to[peer] = True
                 # set to false...
                 self.should_push = False
@@ -798,6 +819,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 f.write("git doesn't track empty dirs, so we add this file...")
             self.repo.add(fn+'/.__delugefs_dir__')
             self.repo.commit(m='mkdir '+path)
+            self.__get_git_log()
             self.should_push = True
             return 0
 
@@ -900,6 +922,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.repo.rm(fn)
             self.repo.mv(self.repodb+old, self.repodb+new)
             self.repo.commit(m='rename '+old+' to '+new)
+            self.__get_git_log()
             self.should_push = True
             return 0
 
@@ -910,6 +933,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if os.path.isfile(fn):
                 self.repo.rm(fn)
                 self.repo.commit(m='rmdir '+path)
+                self.__get_git_log()
                 self.should_push = True
             if os.path.isdir(self.repodb+path):
                 os.rmdir(self.repodb+path)
@@ -975,6 +999,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if True:#try:
                 self.repo.rm(fn)
                 self.repo.commit(m='unlink '+path)
+                self.__get_git_log()
                 self.should_push = True
             #except Exception as e:
             #    if 'file is untracked' in str(e):
@@ -1071,7 +1096,11 @@ if __name__ == '__main__':
         loglevel = int(config['loglevel'])
     else:
         loglevel = 0
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy=config.get('lazy'), create=config.get('create'))
+    if 'lazy' in config:
+        lazy = True
+    else:
+        lazy = False
+    server = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
     if 'mount' in config:
         server.httpd.api['mount'] = config['mount']
         if not os.path.exists(config['mount']):
