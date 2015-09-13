@@ -392,7 +392,41 @@
                             up = '';
                             peers = '';
                             state = '';
-                            if (v['state']=='seeding') {
+                            if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
+                                row = $('<tr title="'+v['path']+'">');
+                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                /*
+                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
+                                row.append($('<td>'+progress+'</td>'));
+                                if (v['down']!=0) down = v['down'];
+                                row.append($('<td>'+down+'</td>'));
+                                if (v['up']!=0) up = v['up'];
+                                row.append($('<td>'+up+'</td>'));
+                                if (v['peers']!=0) peers = v['peers'];
+                                row.append($('<td>'+peers+'</td>'));
+                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
+                                row.append($('<td>'+state+'</td>'));
+                                */
+                                sleepingtable.append(row);
+                                sleepingcount++;
+                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
+                                row = $('<tr title="'+v['path']+'">');
+                                row.append($('<td>'+v['hash_name']+'</td>'));
+                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
+                                row.append($('<td>'+progress+'</td>'));
+                                /*
+                                if (v['down']!=0) down = v['down'];
+                                row.append($('<td>'+down+'</td>'));
+                                if (v['up']!=0) up = v['up'];
+                                row.append($('<td>'+up+'</td>'));
+                                if (v['peers']!=0) peers = v['peers'];
+                                row.append($('<td>'+peers+'</td>'));
+                                */
+                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
+                                row.append($('<td>'+state+'</td>'));
+                                qingtable.append(row);
+                                qingcount++;
+                            } else if (v['state']=='seeding') {
                                 row = $('<tr title="'+v['path']+'">');
                                 row.append($('<td>'+v['hash_name']+'</td>'));
                                 /*
@@ -411,40 +445,6 @@
                                 */
                                 seedingtable.append(row);
                                 seedingcount++;
-                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
-                                row = $('<tr title="'+v['path']+'">');
-                                row.append($('<td>'+v['hash_name']+'</td>'));
-                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
-                                row.append($('<td>'+progress+'</td>'));
-                                /*
-                                if (v['down']!=0) down = v['down'];
-                                row.append($('<td>'+down+'</td>'));
-                                if (v['up']!=0) up = v['up'];
-                                row.append($('<td>'+up+'</td>'));
-                                if (v['peers']!=0) peers = v['peers'];
-                                row.append($('<td>'+peers+'</td>'));
-                                */
-                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
-                                row.append($('<td>'+state+'</td>'));
-                                qingtable.append(row);
-                                qingcount++;
-                            } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
-                                row = $('<tr title="'+v['path']+'">');
-                                row.append($('<td>'+v['hash_name']+'</td>'));
-                                /*
-                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
-                                row.append($('<td>'+progress+'</td>'));
-                                if (v['down']!=0) down = v['down'];
-                                row.append($('<td>'+down+'</td>'));
-                                if (v['up']!=0) up = v['up'];
-                                row.append($('<td>'+up+'</td>'));
-                                if (v['peers']!=0) peers = v['peers'];
-                                row.append($('<td>'+peers+'</td>'));
-                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
-                                row.append($('<td>'+state+'</td>'));
-                                */
-                                sleepingtable.append(row);
-                                sleepingcount++;
                             } else {
                                 row = $('<tr title="'+v['path']+'">');
                                 row.append($('<td>'+v['hash_name']+'</td>'));
