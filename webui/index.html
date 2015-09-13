@@ -121,18 +121,18 @@
             </div>
         </div>
         <div class="clear container border float-left">
-            <button id="toggleactive" class="toggle">x</button>
             <h2>Active<span id="activecount"></span></h2>
+            <button id="toggleactive" class="toggle">x</button>
             <div class="data" id="activetorrents"></div>
         </div>
         <div class="container border float-left">
-            <button id="toggleqing" class="toggle">x</button>
             <h2>Queued<span id="qingcount"></span></h2>
+            <button id="toggleqing" class="toggle">x</button>
             <div class="data" id="qingtorrents"></div>
         </div>
         <div class="container border float-left">
-            <button id="togglesleeping" class="toggle">x</button>
             <h2>Sleeping<span id="sleepingcount"></span></h2>
+            <button id="togglesleeping" class="toggle">x</button>
             <div class="data" id="sleepingtorrents"></div>
         </div>
 
@@ -338,6 +338,7 @@
                         $('#sleepingtorrents').show();
                     }
                 });
+                $('#togglesleeping').click();
             });
             function get_info(id) {
                 $.ajax({
