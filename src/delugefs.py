@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.0'
+APP_VERSION='0.2.1'
 
 
 
@@ -168,7 +168,8 @@ class DelugeFS(LoggingMixIn, Operations):
                 'root':root,
                 'servicename':self.bj_name,
                 'hostname':socket.gethostname(),
-                'gitlog':'.',
+                'mount':'-',
+                'gitlog':'-',
                 'version':'v%s' % APP_VERSION
                 }
         self.httpd.bt_handles = {}
