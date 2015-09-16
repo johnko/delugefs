@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.1.8'
+APP_VERSION='0.1.9'
 
 
 
@@ -1098,7 +1098,7 @@ if __name__ == '__main__':
     if 'btport' in config:
         btport = int(config['btport'])
     else:
-        btport = random.randint(10000, 20000)
+        btport = random.randint(60000, 61000)
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])
     else:
