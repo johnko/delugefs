@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.1.9'
+APP_VERSION='0.2.0'
 
 
 
@@ -47,7 +47,7 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # print 'command',self.command
             # print 'path',self.path
             # print 'headers',self.headers
-            var_req = "/api/v1/"
+            var_req = "/api/v2/json/"
             if self.path[0:len(var_req)]==var_req:
                 self.send_response(200)
                 key = self.path[len(var_req):]

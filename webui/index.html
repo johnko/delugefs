@@ -348,7 +348,7 @@
             });
             function get_info(id) {
                 $.ajax({
-                    url: "/api/v1/" + id,
+                    url: "/api/v2/json/" + id,
                     dataType: "json"
                 }).success(function(data) {
                     $.each(data, function(k,v) {
