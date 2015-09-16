@@ -375,11 +375,14 @@
                             btpeercount++;
                         });
                         $('#btpeers').empty().append(btpeertable);
-                        $('#btpeercount').empty().append('<span>: '+btpeercount+'</span>');
+                        $('#btpeercount').empty().append('<span class="number"> '+btpeercount+'</span>');
                     }
                 } else {
-                    el = $('<span>'+val+'</span>');
-                    $(id).empty().append(el);
+                    var strval = '<span>'+val+'</span>';
+                    if ($(id).html()!=strval) {
+                        el = $(strval);
+                        $(id).empty().append(el);
+                    }
                 }
             }
             function set_info(id, val) {
@@ -404,7 +407,7 @@
                             peercount++;
                         });
                         $(id).empty().append(peertable);
-                        $('#peercount').empty().append('<span>: '+peercount+'</span>');
+                        $('#peercount').empty().append('<span class="number"> '+peercount+'</span>');
                     } else if (id=='#activetorrents') {
                         qingcount = 0;
                         qingtable = $('<table>');
@@ -479,16 +482,19 @@
                             }
                         });
                         $(id).empty().append(activetable);
-                        $('#activecount').empty().append('<span>: '+activecount+'</span>');
+                        $('#activecount').empty().append('<span class="number"> '+activecount+'</span>');
                         $('#qingtorrents').empty().append(qingtable);
-                        $('#qingcount').empty().append('<span>: '+qingcount+'</span>');
+                        $('#qingcount').empty().append('<span class="number"> '+qingcount+'</span>');
                         $('#sleepingtorrents').empty().append(sleepingtable);
-                        $('#sleepingcount').empty().append('<span>: '+sleepingcount+'</span>');
+                        $('#sleepingcount').empty().append('<span class="number"> '+sleepingcount+'</span>');
                     }
                 } else if ($.isXMLDoc(val)) {
                 } else {
-                    el = $('<span>'+val+'</span>');
-                    $(id).empty().append(el);
+                    var strval = '<span>'+val+'</span>';
+                    if ($(id).html()!=strval) {
+                        el = $(strval);
+                        $(id).empty().append(el);
+                    }
                 }
             }
         </script>
