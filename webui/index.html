@@ -432,7 +432,9 @@
                             state = '';
                             if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
                                 row = $('<tr title="'+v['hash_name']+'">');
-                                row.append($('<td>'+v['path']+'</td>'));
+                                patharray = v['path'].split('/');
+                                filename = patharray[patharray.length-1];
+                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
                                 /*
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td>'+progress+'</td>'));
@@ -449,7 +451,9 @@
                                 sleepingcount++;
                             } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
                                 row = $('<tr title="'+v['hash_name']+'">');
-                                row.append($('<td>'+v['path']+'</td>'));
+                                patharray = v['path'].split('/');
+                                filename = patharray[patharray.length-1];
+                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
                                 /*
@@ -466,7 +470,9 @@
                                 qingcount++;
                             } else {
                                 row = $('<tr title="'+v['hash_name']+'">');
-                                row.append($('<td>'+v['path']+'</td>'));
+                                patharray = v['path'].split('/');
+                                filename = patharray[patharray.length-1];
+                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
                                 if (v['down']!=0) down = v['down'];
