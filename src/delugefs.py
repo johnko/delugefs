@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.4'
+APP_VERSION='0.2.5'
 
 
 
@@ -118,14 +118,14 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
             elif self.path[0:len(file_req)]==file_req:
-                if (self.api['mount'] is not None) and (not self.api['mount'] == '-'):
+                if (self.server.api['mount'] is not None) and (not self.server.api['mount'] == '-'):
                     file_path = self.path[len(file_req):]
                     try:
                         pathparts = file_path.split('/')
                         newpath = os.sep.join(pathparts)
                         # print 'os.curdir',os.curdir
                         # print 'newpath',newpath
-                        f = open(os.path.join(self.api['mount'], newpath))
+                        f = open(os.path.join(self.server.api['mount'], newpath))
                         self.send_response(200)
                         if self.path.endswith('.html'):
                             self.send_header('Content-type','text/html')
