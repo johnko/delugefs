@@ -434,7 +434,7 @@
                                 row = $('<tr title="'+v['hash_name']+'">');
                                 patharray = v['path'].split('/');
                                 filename = patharray[patharray.length-1];
-                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
+                                row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                                 /*
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td>'+progress+'</td>'));
@@ -453,7 +453,7 @@
                                 row = $('<tr title="'+v['hash_name']+'">');
                                 patharray = v['path'].split('/');
                                 filename = patharray[patharray.length-1];
-                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
+                                row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
                                 /*
@@ -472,7 +472,7 @@
                                 row = $('<tr title="'+v['hash_name']+'">');
                                 patharray = v['path'].split('/');
                                 filename = patharray[patharray.length-1];
-                                row.append($('<td><a href="/api/v2/file/">'+filename+'</a></td>'));
+                                row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                                 if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
                                 if (v['down']!=0) down = v['down'];
