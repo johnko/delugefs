@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.1'
+APP_VERSION='0.2.2'
 
 
 
@@ -67,11 +67,11 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         peerip = set()
                         for path, h in self.server.bt_handles.items():
                             if count > 0: self.wfile.write(',')
-                            path_array = path.split(os.sep)
+                            urlpath = "/".join(path.split(os.sep))
                             s = h.status()
                             state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
                             self.wfile.write('{"path":"%s","hash_name":"%s","progress":"%d","down":"%d","up":"%d","peers":"%d","state":"%s"}' % \
-                                    (path_array[len(path_array)-1], h.get_torrent_info().name(), s.progress * 100, s.download_rate, s.upload_rate, \
+                                    (urlpath, h.get_torrent_info().name(), s.progress * 100, s.download_rate, s.upload_rate, \
                                     s.num_peers, state_str[s.state]))
                             if count < 1: count += 1
                             p = h.get_peer_info()
