@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.5'
+APP_VERSION='0.2.6'
 
 
 
@@ -118,25 +118,30 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
             elif self.path[0:len(file_req)]==file_req:
+                # Decode the .torrent file and serve the DAT if exists
                 if (self.server.api['mount'] is not None) and (not self.server.api['mount'] == '-'):
+                    # print 'self.server.api[mount]', self.server.api['mount']
                     file_path = self.path[len(file_req):]
                     try:
-                        pathparts = file_path.split('/')
+                        pathparts = file_path.strip('/').split('/')
                         newpath = os.sep.join(pathparts)
-                        # print 'os.curdir',os.curdir
+                        # print 'pathparts',pathparts
                         # print 'newpath',newpath
-                        f = open(os.path.join(self.server.api['mount'], newpath))
-                        self.send_response(200)
-                        if self.path.endswith('.html'):
-                            self.send_header('Content-type','text/html')
-                        elif self.path.endswith('.js'):
-                            self.send_header('Content-type','text/javascript')
-                        else:
+                        repodb = os.path.join(self.server.api['root'], u'gitdb')
+                        dat = os.path.join(self.server.api['root'], u'dat')
+                        fn = os.path.join(repodb, newpath).encode(FS_ENCODE)
+                        t = get_torrent_dict(fn)
+                        if t:
+                            name = t['info']['name']
+                            dat_fn = os.path.join(dat, name[:2], name)
+                            f = open(dat_fn)
+                            self.send_response(200)
                             self.send_header('Content-type','application/octet-stream')
-                        self.end_headers()
-                        self.wfile.write(f.read())
-                        f.close()
-                        return
+                            self.end_headers()
+                            self.wfile.write(f.read())
+                            f.close()
+                        else:
+                            self.send_error(404,'File Not Found: %s' % self.path)
                     except IOError:
                         self.send_error(404,'File Not Found: %s' % self.path)
             else:
