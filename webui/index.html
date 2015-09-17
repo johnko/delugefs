@@ -234,9 +234,11 @@
             }
             body.theme-atom .progress {
                 border: 1px solid #61B6C1;
+                border-radius: 3px;
             }
             body.theme-atom .progress .bar {
                 background-color: #61B6C1;
+                font-size: 0.4em;
             }
         </style>
         <style type="text/css">
@@ -451,7 +453,7 @@
                             if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                             else row.append($('<td>'+filename+'</td>'));
 
-                            progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;">'+v['progress']+'</div></div>';
+                            progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;">&nbsp;</div></div>';
 
                             if (v['down']!=0) down = v['down'];
 
@@ -460,12 +462,12 @@
                             if (v['peers']!=0) peers = v['peers'];
 
                             if (v['state']=='downloading') state = 'd';
-                            else if (v['state']=='seeding') state = '<span class="string">S</span>';
+                            else if (v['state']=='seeding') state = '';
                             else state = v['state'];
 
                             if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
                                 /*
-                                row.append($('<td class="number">'+progress+'</td>'));
+                                row.append($('<td>'+progress+'</td>'));
                                 row.append($('<td class="number">'+down+'</td>'));
                                 row.append($('<td class="number">'+up+'</td>'));
                                 row.append($('<td class="number">'+peers+'</td>'));
@@ -474,7 +476,7 @@
                                 sleepingtable.append(row);
                                 sleepingcount++;
                             } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
-                                row.append($('<td class="number">'+progress+'</td>'));
+                                row.append($('<td>'+progress+'</td>'));
                                 /*
                                 row.append($('<td class="number">'+down+'</td>'));
                                 row.append($('<td class="number">'+up+'</td>'));
@@ -484,7 +486,7 @@
                                 qingtable.append(row);
                                 qingcount++;
                             } else {
-                                row.append($('<td class="number">'+progress+'</td>'));
+                                row.append($('<td>'+progress+'</td>'));
                                 row.append($('<td class="number">'+down+'</td>'));
                                 row.append($('<td class="number">'+up+'</td>'));
                                 row.append($('<td class="number">'+peers+'</td>'));
