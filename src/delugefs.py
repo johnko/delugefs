@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.3'
+APP_VERSION='0.2.4'
 
 
 
@@ -48,6 +48,7 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # print 'path',self.path
             # print 'headers',self.headers
             var_req = "/api/v2/json/"
+            file_req = "/api/v2/file/"
             if self.path[0:len(var_req)]==var_req:
                 self.send_response(200)
                 key = self.path[len(var_req):]
@@ -116,6 +117,28 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.wfile.write(']}]')
                 else:
                     self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
+            elif self.path[0:len(file_req)]==file_req:
+                if (self.api['mount'] is not None) and (not self.api['mount'] == '-'):
+                    file_path = self.path[len(file_req):]
+                    try:
+                        pathparts = file_path.split('/')
+                        newpath = os.sep.join(pathparts)
+                        # print 'os.curdir',os.curdir
+                        # print 'newpath',newpath
+                        f = open(os.path.join(self.api['mount'], newpath))
+                        self.send_response(200)
+                        if self.path.endswith('.html'):
+                            self.send_header('Content-type','text/html')
+                        elif self.path.endswith('.js'):
+                            self.send_header('Content-type','text/javascript')
+                        else:
+                            self.send_header('Content-type','application/octet-stream')
+                        self.end_headers()
+                        self.wfile.write(f.read())
+                        f.close()
+                        return
+                    except IOError:
+                        self.send_error(404,'File Not Found: %s' % self.path)
             else:
                 if '/'==self.path: self.path = '/index.html'
                 try:
