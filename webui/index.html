@@ -299,7 +299,8 @@
                 text-decoration: none;
             }
             .progress {
-                width: 100px;
+                height: 12px;
+                width: 50px;
             }
         </style>
         <script type="text/javascript" src="/js/jquery-2.1.4.js"></script>
@@ -446,17 +447,20 @@
                             patharray = v['path'].split('/');
                             filename = patharray[patharray.length-1];
                             row = $('<tr title="'+v['hash_name']+'">');
+
                             if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                             else row.append($('<td>'+filename+'</td>'));
 
                             progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;"></div></div>';
 
                             if (v['down']!=0) down = v['down'];
+
                             if (v['up']!=0) up = v['up'];
+
                             if (v['peers']!=0) peers = v['peers'];
 
-                            if (v['state']!='downloading') state = 'd';
-                            if (v['state']!='seeding') state = '<span class="string">S</span>';
+                            if (v['state']=='downloading') state = 'd';
+                            else if (v['state']=='seeding') state = '<span class="string">S</span>';
                             else state = v['state'];
 
                             if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
