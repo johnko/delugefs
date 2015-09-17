@@ -232,6 +232,12 @@
                 font-weight: 300;
                 letter-spacing: 0.05em;
             }
+            body.theme-atom .progress {
+                border: 1px solid #61B6C1;
+            }
+            body.theme-atom .progress .bar {
+                background-color: #61B6C1;
+            }
         </style>
         <style type="text/css">
             body {
@@ -291,6 +297,9 @@
             .data table td a {
                 color: inherit;
                 text-decoration: none;
+            }
+            .progress {
+                width: 100px;
             }
         </style>
         <script type="text/javascript" src="/js/jquery-2.1.4.js"></script>
@@ -434,61 +443,47 @@
                             up = '';
                             peers = '';
                             state = '';
+                            patharray = v['path'].split('/');
+                            filename = patharray[patharray.length-1];
+                            row = $('<tr title="'+v['hash_name']+'">');
+                            if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
+                            else row.append($('<td>'+filename+'</td>'));
+
+                            progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;"></div></div>';
+
+                            if (v['down']!=0) down = v['down'];
+                            if (v['up']!=0) up = v['up'];
+                            if (v['peers']!=0) peers = v['peers'];
+
+                            if (v['state']!='downloading') state = 'd';
+                            if (v['state']!='seeding') state = '<span class="string">S</span>';
+                            else state = v['state'];
+
                             if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']=='seeding')) {
-                                row = $('<tr title="'+v['hash_name']+'">');
-                                patharray = v['path'].split('/');
-                                filename = patharray[patharray.length-1];
-                                if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
-                                else row.append($('<td>'+filename+'</td>'));
                                 /*
-                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
-                                row.append($('<td>'+progress+'</td>'));
-                                if (v['down']!=0) down = v['down'];
-                                row.append($('<td>'+down+'</td>'));
-                                if (v['up']!=0) up = v['up'];
-                                row.append($('<td>'+up+'</td>'));
-                                if (v['peers']!=0) peers = v['peers'];
-                                row.append($('<td>'+peers+'</td>'));
-                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
+                                row.append($('<td class="number">'+progress+'</td>'));
+                                row.append($('<td class="number">'+down+'</td>'));
+                                row.append($('<td class="number">'+up+'</td>'));
+                                row.append($('<td class="number">'+peers+'</td>'));
                                 row.append($('<td>'+state+'</td>'));
                                 */
                                 sleepingtable.append(row);
                                 sleepingcount++;
                             } else if ((v['down']==0)&&(v['up']==0)&&(v['peers']==0)&&(v['state']!='seeding')) {
-                                row = $('<tr title="'+v['hash_name']+'">');
-                                patharray = v['path'].split('/');
-                                filename = patharray[patharray.length-1];
-                                if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
-                                else row.append($('<td>'+filename+'</td>'));
-                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
                                 /*
-                                if (v['down']!=0) down = v['down'];
-                                row.append($('<td>'+down+'</td>'));
-                                if (v['up']!=0) up = v['up'];
-                                row.append($('<td>'+up+'</td>'));
-                                if (v['peers']!=0) peers = v['peers'];
-                                row.append($('<td>'+peers+'</td>'));
+                                row.append($('<td class="number">'+down+'</td>'));
+                                row.append($('<td class="number">'+up+'</td>'));
+                                row.append($('<td class="number">'+peers+'</td>'));
                                 */
-                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
                                 row.append($('<td>'+state+'</td>'));
                                 qingtable.append(row);
                                 qingcount++;
                             } else {
-                                row = $('<tr title="'+v['hash_name']+'">');
-                                patharray = v['path'].split('/');
-                                filename = patharray[patharray.length-1];
-                                if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
-                                else row.append($('<td>'+filename+'</td>'));
-                                if ((v['progress']!=0)&&(v['progress']!=100)) progress = v['progress'];
                                 row.append($('<td class="number">'+progress+'</td>'));
-                                if (v['down']!=0) down = v['down'];
                                 row.append($('<td class="number">'+down+'</td>'));
-                                if (v['up']!=0) up = v['up'];
                                 row.append($('<td class="number">'+up+'</td>'));
-                                if (v['peers']!=0) peers = v['peers'];
                                 row.append($('<td class="number">'+peers+'</td>'));
-                                if ((v['state']!='downloading')&&(v['state']!='seeding')) state = v['state'];
                                 row.append($('<td>'+state+'</td>'));
                                 activetable.append(row);
                                 activecount++;
