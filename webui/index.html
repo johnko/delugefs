@@ -451,7 +451,7 @@
                             if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
                             else row.append($('<td>'+filename+'</td>'));
 
-                            progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;"></div></div>';
+                            progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;">'+v['progress']+'</div></div>';
 
                             if (v['down']!=0) down = v['down'];
 
