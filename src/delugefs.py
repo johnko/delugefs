@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.8'
+APP_VERSION='0.2.9'
 
 
 
@@ -149,9 +149,9 @@ class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 try:
                     pathparts = self.path.split('/')
                     newpath = os.sep.join(pathparts)
-                    # print 'os.curdir',os.curdir
+                    # print 'self.server.api['webdir']',self.server.api['webdir']
                     # print 'newpath',newpath
-                    f = open(os.path.join(os.curdir, newpath[1:]))
+                    f = open(os.path.join(self.server.api['webdir'], newpath[1:]))
                     self.send_response(200)
                     if self.path.endswith('.html'):
                         self.send_header('Content-type','text/html')
@@ -183,7 +183,6 @@ class DelugeFS(LoggingMixIn, Operations):
         self.webdir = webdir
         self.webip = webip
         self.webport = webport
-        os.chdir(self.webdir)
         self.httpd = webserver((self.webip, self.webport), webhandler)
         print 'webserver listening on: http://%s:%d/' % (self.webip, self.webport)
         self.httpd.api = {'webdir':webdir,
