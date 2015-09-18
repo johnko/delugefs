@@ -4,12 +4,14 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 
 # This Fork's Planned Changes
 
+- switch to git over HTTPS so we don't need SSH accounts on peer's computers
+- possibility to manually add external network peer
+- performing git operations on peers with dynamic IP since SSH hostkeys are per hostname/IP
+- update peer IP if connecting IP matches a cert
+- Firewall hole punching for git on peers behind NAT/firewalls
 - change the "keep_pushing" loop to event driven?? but loses separate single thread
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
-- possibility to manually add external network peer
-- performing git operations on peers with dynamic IP since SSH hostkeys are per hostname/IP
-- Firewall hole punching for git on peers behind NAT/firewalls
 
 # Known issues
 
