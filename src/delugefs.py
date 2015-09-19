@@ -23,12 +23,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.2.9'
+APP_VERSION='0.3.0-dev'
 
 
 
 
-import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer
+import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer, hashlib
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent as lt
 import sh
@@ -516,23 +516,15 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,SECONDS_TO_NEXT_CHECK+random.randint(0,10*(1+len(self.httpd.peers))))
 
-    def __finalize(self, path, uid):
-        if self.LOGLEVEL > 2: print 'finalize', path, uid
-        # try sha256 before making torrent
-        tmp_fn = os.path.join(self.tmp, uid)
-        sh.shasum('-a', '256', tmp_fn, _out=self.__finalize_callback)
-
-    def __finalize_callback(self, line):
-        if self.LOGLEVEL > 3: print 'line',line
+    def __finalize(self, path, olduid):
+        if self.LOGLEVEL > 2: print 'finalize', path, olduid
         try:
-            uid = line.strip().split(None, 1)[0]
-            tmp_path_array = line.strip().split(None, 1)[1].split(os.sep)
-            if self.LOGLEVEL > 3: print 'tmp_path_array',tmp_path_array
-            olduid = tmp_path_array[len(tmp_path_array)-1]
+            # try sha256 before making torrent
+            uid = sha256sum(tmp_fn, 4096)
             old_tmp_fn = os.path.join(self.tmp, olduid)
             tmp_fn = os.path.join(self.tmp, uid)
             path = None
-            if self.LOGLEVEL > 3: print 'olduid',olduid.strip()
+            if self.LOGLEVEL > 3: print 'olduid',olduid
             for k,v in self.open_files.items():
                 if self.LOGLEVEL > 3: print 'k',k
                 if self.LOGLEVEL > 3: print 'v',v
@@ -1075,6 +1067,13 @@ def prune_empty_dirs(path):
         print 'pruning', path
         os.rmdir(path)
     return empty
+
+def sha256sum(filename, blocksize=65536):
+    hash = hashlib.sha256()
+    with open(filename, "r+b") as f:
+        for block in iter(lambda: f.read(blocksize), ""):
+            hash.update(block)
+    return hash.hexdigest()
 
 def usage(msg):
     print 'ERROR:', msg

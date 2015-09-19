@@ -60,7 +60,6 @@ FreeBSD:
 
 - kldload fuse
 - pkg install git fusefs-libs py27-pybonjour py27-libtorrent-rasterbar py27-sh
-- `shasum`
 
 
 # Current Status
