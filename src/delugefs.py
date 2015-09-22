@@ -39,19 +39,24 @@ FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
 
 '''
-webuiserver
+WebUIServer
 ----
 This class will serve the webui
 '''
-class webuiserver(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+class WebUIServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     pass
 
 '''
-webuihandler
+WebUIHandler
 ----
 This class will handle the HTTP requests
 '''
-class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    '''
+    do_GET
+    ----
+    This function is run for every GET HTTP request
+    '''
     def do_GET(self):
         try:
             # print 'command',self.command
@@ -60,17 +65,27 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
             var_req = "/api/v2/json/"
             file_req = "/api/v2/file/"
             if self.path[0:len(var_req)]==var_req:
-                self.send_response(200)
+                '''
+                if we are parsing a api json request
+                '''
                 key = self.path[len(var_req):]
                 # print 'key',key
                 # print 'self.server.api',self.server.api
                 if key in self.server.api:
+                    '''
+                    and key exists, send the value
+                    '''
+                    self.send_response(200)
                     s = self.server.api[key]
                     self.send_header("Content-Type", "text/plain")
                     self.end_headers()
                     self.wfile.write('[{"res":"%s"}]' % s)
                 elif key == 'activetorrents':
+                    '''
+                    or key is activetorrents then we have to generate the output
+                    '''
                     try:
+                        self.send_response(200)
                         self.send_header("Content-Type", "text/plain")
                         self.end_headers()
                         self.wfile.write('[{"res":[')
@@ -95,6 +110,9 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                 if ip not in peerip:
                                     peerip.add(ip)
                         self.wfile.write('],"res2":[')
+                        '''
+                        activetorrents secondary response of torrent peers
+                        '''
                         count = 0
                         for i in peerip:
                             if count > 0: self.wfile.write(',')
@@ -104,6 +122,10 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     except Exception as e:
                         traceback.print_exc()
                 elif key == 'freespace':
+                    '''
+                    or key is freespace then we have to generate the output
+                    '''
+                    self.send_response(200)
                     self.send_header("Content-Type", "text/plain")
                     self.end_headers()
                     f = os.statvfs(self.server.api['root'])
@@ -113,6 +135,10 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     freebytes = (bsize * f[statvfs.F_BFREE]) /1024 /1024 /1024
                     self.wfile.write('[{"res":"%d GB"}]' % freebytes)
                 elif key == 'peers':
+                    '''
+                    or key is peers then we have to generate the output
+                    '''
+                    self.send_response(200)
                     self.send_header("Content-Type", "text/plain")
                     self.end_headers()
                     self.wfile.write('[{"res":[')
@@ -126,35 +152,46 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         if count < 1: count += 1
                     self.wfile.write(']}]')
                 else:
+                    '''
+                    otherwise key is unknown
+                    '''
                     self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
             elif self.path[0:len(file_req)]==file_req:
+                '''
+                if we are parsing a api file request (to download the file from webui)
+                '''
                 # Decode the .torrent file and serve the DAT if exists
-                if (self.server.api['mount'] is not None) and (not self.server.api['mount'] == '-'):
-                    # print 'self.server.api[mount]', self.server.api['mount']
-                    file_path = self.path[len(file_req):]
-                    try:
-                        pathparts = file_path.strip('/').split('/')
-                        newpath = os.sep.join(pathparts)
-                        # print 'pathparts',pathparts
-                        # print 'newpath',newpath
-                        repodb = os.path.join(self.server.api['root'], u'gitdb')
-                        dat = os.path.join(self.server.api['root'], u'dat')
-                        fn = os.path.join(repodb, newpath).encode(FS_ENCODE)
-                        t = get_torrent_dict(fn)
-                        if t:
-                            name = t['info']['name']
-                            dat_fn = os.path.join(dat, name[:2], name)
-                            f = open(dat_fn)
-                            self.send_response(200)
-                            self.send_header('Content-type','application/octet-stream')
-                            self.end_headers()
-                            self.wfile.write(f.read())
-                            f.close()
-                        else:
-                            self.send_error(404,'File Not Found: %s' % self.path)
-                    except IOError:
+                # print 'self.server.api[mount]', self.server.api['mount']
+                file_path = self.path[len(file_req):]
+                try:
+                    pathparts = file_path.strip('/').split('/')
+                    newpath = os.sep.join(pathparts)
+                    # print 'pathparts',pathparts
+                    # print 'newpath',newpath
+                    repodb = os.path.join(self.server.api['root'], u'gitdb')
+                    dat = os.path.join(self.server.api['root'], u'dat')
+                    fn = os.path.join(repodb, newpath).encode(FS_ENCODE)
+                    '''
+                    parse the .torrent and read it straight from the dat folder
+                    '''
+                    t = get_torrent_dict(fn)
+                    if t:
+                        name = t['info']['name']
+                        dat_fn = os.path.join(dat, name[:2], name)
+                        f = open(dat_fn)
+                        self.send_response(200)
+                        self.send_header('Content-type','application/octet-stream')
+                        self.end_headers()
+                        self.wfile.write(f.read())
+                        f.close()
+                    else:
                         self.send_error(404,'File Not Found: %s' % self.path)
+                except IOError:
+                    self.send_error(404,'File Not Found: %s' % self.path)
             else:
+                '''
+                else we are serving the home page, not parsing an api request
+                '''
                 if '/'==self.path: self.path = '/index.html'
                 try:
                     pathparts = self.path.split('/')
@@ -177,6 +214,11 @@ class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
             # print "the thread answering the request has been terminated"
             pass
 
+'''
+Peer
+----
+This class represents a peer object. many objects will be initialized during normal use
+'''
 class Peer(object):
     def __init__(self, service_name, host, addr=None, ssh_port=None, bt_port=None):
         self.service_name = service_name
@@ -186,6 +228,12 @@ class Peer(object):
         self.bt_port = bt_port
         #TODO replace self.free_space = self.server.__get_free_space()
 
+'''
+DelugeFS
+----
+This class translates the mounted FUSE fs calls to perform torrent creation, downloading, etc.
+If not mounted, it will not translate FUSE calls and just store/serve file data and metadata 
+'''
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy, create=False):
         self.name = name
@@ -193,8 +241,8 @@ class DelugeFS(LoggingMixIn, Operations):
         self.webdir = webdir
         self.webip = webip
         self.webport = webport
-        self.httpd = webuiserver((self.webip, self.webport), webuihandler)
-        print 'webuiserver listening on: http://%s:%d/' % (self.webip, self.webport)
+        self.httpd = WebUIServer((self.webip, self.webport), WebUIHandler)
+        print 'WebUIServer listening on: http://%s:%d/' % (self.webip, self.webport)
         self.httpd.api = {'webdir':webdir,
                 'webip':webip,
                 'webport':str(webport),
