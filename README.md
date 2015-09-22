@@ -52,8 +52,10 @@ Key insights this FS proves:
 FreeBSD:
 
 - kldload fuse
-- pkg install fusefs-libs py27-pybonjour py27-libtorrent-rasterbar
-- pkg install git py27-sh
+- pkg install py27-pybonjour mDNSResponder
+- pkg install py27-libtorrent-rasterbar libtorrent-rasterbar
+- pkg install fusefs-libs
+- pkg install git py27-sh # we want to get rid of this dependency in 0.4
 
 
 # Current Status
