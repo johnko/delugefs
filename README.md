@@ -55,7 +55,7 @@ FreeBSD:
 - pkg install py27-pybonjour mDNSResponder
 - pkg install py27-libtorrent-rasterbar libtorrent-rasterbar
 - pkg install fusefs-libs
-- pkg install git py27-sh # we want to get rid of this dependency in 0.4
+- pkg install git py27-sh # we want to get rid of this dependency by 0.4
 
 
 # Current Status
