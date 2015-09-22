@@ -13,13 +13,6 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 
-# Known issues
-
-- hardlink and symlink fails
-- set ctime/mtime on a file fails
-- set owner fails, but doesn't error
-- set permission fails, but doesn't error
-
 # This Fork's Implemented Changes
 
 Tick if manually tested:
@@ -59,7 +52,8 @@ Key insights this FS proves:
 FreeBSD:
 
 - kldload fuse
-- pkg install git fusefs-libs py27-pybonjour py27-libtorrent-rasterbar py27-sh
+- pkg install fusefs-libs py27-pybonjour py27-libtorrent-rasterbar
+- pkg install git py27-sh
 
 
 # Current Status
@@ -76,6 +70,10 @@ Speed:
 ## Known Issues
 
 - Files over ~4GB are not stored (and their zero-length stubs cannot be deleted). [@keredson](https://github.com/keredson) believes this is due to an int vs. long incompatibility with libtorrent, but hasn't confirmed.
+- hardlink and symlink fails
+- set ctime/mtime on a file fails
+- set owner fails, but doesn't error
+- set permission fails, but doesn't error
 
 # Basic Algorithm
 
