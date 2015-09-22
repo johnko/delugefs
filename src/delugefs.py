@@ -520,9 +520,9 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 2: print 'finalize', path, olduid
         try:
             # try sha256 before making torrent
+            tmp_fn = os.path.join(self.tmp, uid)
             uid = sha256sum(tmp_fn, 4096)
             old_tmp_fn = os.path.join(self.tmp, olduid)
-            tmp_fn = os.path.join(self.tmp, uid)
             path = None
             if self.LOGLEVEL > 3: print 'olduid',olduid
             for k,v in self.open_files.items():
