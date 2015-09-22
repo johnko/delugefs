@@ -217,7 +217,7 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 '''
 Peer
 ----
-This class represents a peer object. many objects will be initialized during normal use
+This class represents a peer object. many peers will be initialized during normal use
 '''
 class Peer(object):
     def __init__(self, service_name, host, addr=None, ssh_port=None, bt_port=None):
@@ -232,7 +232,7 @@ class Peer(object):
 DelugeFS
 ----
 This class translates the mounted FUSE fs calls to perform torrent creation, downloading, etc.
-If not mounted, it will not translate FUSE calls and just store/serve file data and metadata 
+If not mounted, it will not translate FUSE calls and just store/serve file data and metadata
 '''
 class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy, create=False):
