@@ -38,10 +38,20 @@ SECONDS_TO_NEXT_CHECK = 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
 
-class webserver(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+'''
+webuiserver
+----
+This class will serve the webui
+'''
+class webuiserver(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     pass
 
-class webhandler(BaseHTTPServer.BaseHTTPRequestHandler):
+'''
+webuihandler
+----
+This class will handle the HTTP requests
+'''
+class webuihandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             # print 'command',self.command
@@ -183,8 +193,8 @@ class DelugeFS(LoggingMixIn, Operations):
         self.webdir = webdir
         self.webip = webip
         self.webport = webport
-        self.httpd = webserver((self.webip, self.webport), webhandler)
-        print 'webserver listening on: http://%s:%d/' % (self.webip, self.webport)
+        self.httpd = webuiserver((self.webip, self.webport), webuihandler)
+        print 'webuiserver listening on: http://%s:%d/' % (self.webip, self.webport)
         self.httpd.api = {'webdir':webdir,
                 'webip':webip,
                 'webport':str(webport),
