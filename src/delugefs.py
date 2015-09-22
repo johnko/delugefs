@@ -238,11 +238,8 @@ class DelugeFS(LoggingMixIn, Operations):
     def __init__(self, name, root, bt_start_port, sshport, webip, webport, webdir, loglevel, lazy, create=False):
         self.name = name
         self.bj_name = self.name+'__'+uuid.uuid4().hex
-        self.webdir = webdir
-        self.webip = webip
-        self.webport = webport
-        self.httpd = WebUIServer((self.webip, self.webport), WebUIHandler)
-        print 'WebUIServer listening on: http://%s:%d/' % (self.webip, self.webport)
+        self.httpd = WebUIServer((webip, webport), WebUIHandler)
+        print 'WebUIServer listening on: http://%s:%d/' % (webip, webport)
         self.httpd.api = {'webdir':webdir,
                 'webip':webip,
                 'webport':str(webport),
@@ -396,6 +393,9 @@ class DelugeFS(LoggingMixIn, Operations):
         t.daemon = True
         t.start()
 
+    '''
+    Internal functions, alphabetical
+    '''
     def __add_peer(self, service_name, host, addr=None, ssh_port=None, bt_port=None):
         print 'adding peer'
         if not servicename in self.httpd.peers:
@@ -835,6 +835,9 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 4: print '...', cid
         return ret
 
+    '''
+    Fuse FS calls in alphabetical order
+    '''
     def access(self, path, mode):
         if not os.access(self.repodb+path, mode):
             raise FuseOSError(errno.EACCES)
@@ -1101,17 +1104,30 @@ class DelugeFS(LoggingMixIn, Operations):
 
 
 
-resolved = [] # for pybonjour callbacks
-queried = []  # for pybonjour callbacks
+'''
+Global variables for pybonjour callbacks
+'''
+resolved = []
+queried = []
 
-
-
-
+'''
+Global functions
+'''
+'''
+get_torrent_dict
+----
+opens a file and returns a bdecoded object
+'''
 def get_torrent_dict(fn):
     if not os.path.isfile(fn): return
     with open(fn, 'rb') as f:
         return lt.bdecode(f.read())
 
+'''
+prune_empty_dirs
+----
+recursively remove empty directories
+'''
 def prune_empty_dirs(path):
     empty = True
     for fn in os.listdir(path):
@@ -1126,6 +1142,11 @@ def prune_empty_dirs(path):
         os.rmdir(path)
     return empty
 
+'''
+sha256sum
+----
+returns the sha256 hash of a file by reading blocks to reduce memory footprint
+'''
 def sha256sum(filename, blocksize=65536):
     hash = hashlib.sha256()
     with open(filename, "r+b") as f:
@@ -1133,6 +1154,11 @@ def sha256sum(filename, blocksize=65536):
             hash.update(block)
     return hash.hexdigest()
 
+'''
+usage
+----
+helper for command line usage
+'''
 def usage(msg):
     print 'ERROR:', msg
     print('usage: %s [--create] --cluster <clustername> --root <root> [--mount <mountpoint>]' % sys.argv[0])
@@ -1144,6 +1170,9 @@ def usage(msg):
 
 
 
+'''
+main area called if command line
+'''
 if __name__ == '__main__':
     config = {}
     k = None
