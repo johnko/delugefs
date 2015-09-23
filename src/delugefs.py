@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-APP_VERSION='0.3.0'
+APP_VERSION='0.3.1-dev'
 
 
 
@@ -286,10 +286,10 @@ class DelugeFS(LoggingMixIn, Operations):
         self.bt_session.set_pe_settings(pe_settings)
         self.bt_port = self.bt_session.listen_port()
         # self.bt_session.start_lsd() # no libtorrent local discovery because not sure if all local torrent clients are safe
-        self.bt_session.start_dht()
+        # self.bt_session.start_dht() # no libtorrent dht for private if we use h.connect_peer
         self.repo = None
         print 'libtorrent listening on:', self.bt_port
-        self.bt_session.add_dht_router('localhost', 10670)
+        # self.bt_session.add_dht_router('localhost', 10670)
         print '...dht_state()', self.bt_session.dht_state()
 
         t = threading.Thread(target=self.__start_webui)
