@@ -601,16 +601,17 @@ class DelugeFS(LoggingMixIn, Operations):
             lt.set_piece_hashes(t, self.tmp)
             tdata = t.generate()
             #print tdata
-            with open(self.repodb+path, 'wb') as f:
+            fn = (self.repodb + path).encode(FS_ENCODE)
+            with open(fn, 'wb') as f:
                 f.write(lt.bencode(tdata))
-            self.repo.add(self.repodb+path)
-            #print 'wrote', self.repodb+path
+            self.repo.add(fn)
+            #print 'wrote', fn
             dat_dir = os.path.join(self.dat, uid[:2])
             if not os.path.isdir(dat_dir):
                 try: os.mkdir(dat_dir)
                 except: pass
             os.rename(tmp_fn, os.path.join(dat_dir, uid))
-            #print 'committing', self.repodb+path
+            #print 'committing', fn
             self.repo.commit(m='wrote '+path)
             self.__get_git_log()
             self.should_push = True
@@ -726,7 +727,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def __please_mirror(self, path):
         try:
             if self.LOGLEVEL > 3: print '__please_mirror', path
-            fn = self.repodb+path
+            fn = (self.repodb + path).encode(FS_ENCODE)
             torrent = get_torrent_dict(fn)
             if torrent:
                 self.__add_torrent(torrent, path)
@@ -839,9 +840,10 @@ class DelugeFS(LoggingMixIn, Operations):
     Fuse FS calls in alphabetical order
     '''
     def access(self, path, mode):
-        if not os.access(self.repodb+path, mode):
+        fn = (self.repodb + path).encode(FS_ENCODE)
+        if not os.access(fn, mode):
             raise FuseOSError(errno.EACCES)
-        #return os.access(self.repodb+path, mode)
+        #return os.access(fn, mode)
 
     def chmod(self, path, mode):
         return 0
@@ -854,9 +856,10 @@ class DelugeFS(LoggingMixIn, Operations):
             if path.startswith('/.__delugefs__'): return 0
             tmp = uuid.uuid4().hex
             self.open_files[path] = tmp
-            with open(self.repodb+path,'wb') as f:
+            fn = (self.repodb + path).encode(FS_ENCODE)
+            with open(fn,'wb') as f:
                 pass
-            #self.repo.add(self.repodb+path) # blank file, no point in adding to repo
+            #self.repo.add(fn) # blank file, no point in adding to repo
             return os.open(os.path.join(self.tmp, tmp), os.O_WRONLY | os.O_CREAT, mode)
 
     def flush(self, path, fh):
@@ -872,7 +875,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if path in self.open_files:
             fn = os.path.join(self.tmp, self.open_files[path])
         else:
-            fn = self.repodb+path
+            fn = (self.repodb + path).encode(FS_ENCODE)
             if os.path.isfile(fn) and (not path.startswith('/.__delugefs__')):
                 with open(fn, 'rb') as f:
                     torrent = lt.bdecode(f.read())
@@ -901,7 +904,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def mkdir(self, path, flags):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = self.repodb+path
+            fn = (self.repodb + path).encode(FS_ENCODE)
             ret = os.mkdir(fn, flags)
             with open(fn+'/.__delugefs_dir__','w') as f:
                 f.write("git doesn't track empty dirs, so we add this file...")
@@ -915,7 +918,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def open(self, path, flags):
         with self.rwlock:
-            fn = self.repodb+path
+            fn = (self.repodb + path).encode(FS_ENCODE)
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
                 if path.startswith('/.__delugefs__'):
                     return os.open(fn, flags)
@@ -983,7 +986,8 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def readdir(self, path, fh):
         with self.rwlock:
-            return ['.', '..'] + [x for x in os.listdir(self.repodb+path) if x!=".__delugefs_dir__" and x!='.git']
+            fn = (self.repodb + path).encode(FS_ENCODE)
+            return ['.', '..'] + [x for x in os.listdir(fn) if x!=".__delugefs_dir__" and x!='.git']
 
 #    readlink = os.readlink
 
@@ -1017,18 +1021,19 @@ class DelugeFS(LoggingMixIn, Operations):
     def rmdir(self, path):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = self.repodb+path+'/.__delugefs_dir__'
+            fn = (self.repodb + path + '/.__delugefs_dir__').encode(FS_ENCODE)
             if os.path.isfile(fn):
                 self.repo.rm(fn)
                 self.repo.commit(m='rmdir '+path)
                 self.__get_git_log()
                 self.should_push = True
-            if os.path.isdir(self.repodb+path):
-                os.rmdir(self.repodb+path)
+            fn = (self.repodb + path).encode(FS_ENCODE)
+            if os.path.isdir(fn):
+                os.rmdir(fn)
             return 0
 
     def statfs(self, path):
-        fn = self.repodb + path
+        fn = (self.repodb + path).encode(FS_ENCODE)
         if self.LOGLEVEL > 3: print 'statfs %s' % (path)
         stv = os.statvfs(fn.encode(FS_ENCODE))
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
@@ -1047,7 +1052,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def truncate(self, path, length, fh=None):
         with self.rwlock:
             if self.LOGLEVEL > 3: print 'truncate fh is ', fh
-            fn = self.repodb+path
+            fn = (self.repodb + path).encode(FS_ENCODE)
             if path.startswith('/.__delugefs__'): return 0
             if path in self.open_files: # file was opened in READWRITE
                 with open(os.path.join(self.tmp, self.open_files[path]), 'r+') as f:
@@ -1075,7 +1080,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def unlink(self, path):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
-            fn = (self.repodb+path).encode(FS_ENCODE)
+            fn = (self.repodb + path).encode(FS_ENCODE)
             with open(fn, 'rb') as f:
                 torrent = lt.bdecode(f.read())
                 torrent_info = torrent.get('info')  if torrent else None
@@ -1091,7 +1096,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 self.should_push = True
             #except Exception as e:
             #    if 'file is untracked' in str(e):
-            #        os.remove(self.repodb+path)
+            #        os.remove(fn)
             #    else:
             #        raise e
             return 0
