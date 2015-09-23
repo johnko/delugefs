@@ -1237,4 +1237,5 @@ if __name__ == '__main__':
             while True:
                 time.sleep(60)
     finally:
+        print 'attempting webui shutdown...'
         delugefs.httpd.shutdown()
