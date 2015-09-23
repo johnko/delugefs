@@ -1226,12 +1226,15 @@ if __name__ == '__main__':
         lazy = True
     else:
         lazy = False
-    server = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
-    if 'mount' in config:
-        server.httpd.api['mount'] = config['mount']
-        if not os.path.exists(config['mount']):
-            os.mkdir(config['mount'])
-        fuse = FUSE(server, config['mount'], foreground=True) #, debug=True) #, allow_other=True)
-    else:
-        while True:
-            time.sleep(60)
+    delugefs = DelugeFS(config['cluster'], config['root'], btport, sshport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
+    try:
+        if 'mount' in config:
+            delugefs.httpd.api['mount'] = config['mount']
+            if not os.path.exists(config['mount']):
+                os.mkdir(config['mount'])
+            fuse = FUSE(delugefs, config['mount'], foreground=True) #, debug=True) #, allow_other=True)
+        else:
+            while True:
+                time.sleep(60)
+    finally:
+        delugefs.httpd.shutdown()
