@@ -11,6 +11,7 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 - Firewall hole punching for git on peers behind NAT/firewalls
 - change the "keep_pushing" loop to event driven?? but loses separate single thread
 - SSH instead of JSONRPC - blocker is that please_mirror, please_stop_mirroring, active_torrents and freespace currently depends on these
+- HTTPS RPC?
 - though local network peers are auto-discovered, still need to manually add SSH pubkeys to one existing cluster node
 
 # This Fork's Implemented Changes
