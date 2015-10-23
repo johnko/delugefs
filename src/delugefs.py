@@ -305,10 +305,10 @@ class DelugeFS(LoggingMixIn, Operations):
         time.sleep(2)
 
         # create a symlink so we can git pull remotely from a standard location
-        if not os.path.exists('/usr/home/delugefs/symlinks'):
-            os.mkdir('/usr/home/delugefs/symlinks')
-        if not os.path.exists('/usr/home/delugefs/symlinks/%s' % (self.name)):
-            os.symlink(self.root, '/usr/home/delugefs/symlinks/%s' % (self.name))
+        if not os.path.exists(homepath+'/symlinks'):
+            os.mkdir(homepath+'/symlinks')
+        if not os.path.exists('%s/symlinks/%s' % (homepath, self.name)):
+            os.symlink(self.root, '%s/symlinks/%s' % (homepath, self.name))
         self.repo = sh.git.bake(_cwd=self.repodb)
         cnfn = os.path.join(self.repodb, '.__delugefs__', 'cluster_name')
         if create:
@@ -1114,6 +1114,7 @@ Global variables for pybonjour callbacks
 '''
 resolved = []
 queried = []
+homepath = os.path.expanduser("~")
 
 '''
 Global functions
@@ -1209,7 +1210,7 @@ if __name__ == '__main__':
     if 'webdir' in config:
         webdir = config['webdir']
     else:
-        webdir = '/usr/home/delugefs/webui'
+        webdir = homepath+'/webui'
     if 'sshport' in config:
         sshport = int(config['sshport'])
     else:
