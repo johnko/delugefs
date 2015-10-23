@@ -1,13 +1,16 @@
 #!/bin/sh
 
+CLUSTER_USER="dgfs"
+USERHOME=/usr/home/${CLUSTER_USER}
+
 NEWNODE="${1}"
-if [ "x" == "x${NEWNODE}" ]; then
+if [ "x" = "x${NEWNODE}" ]; then
     echo "ERROR: missing New Node IP as arg1"
     exit 1
 fi
 
-vi /usr/home/delugefs/.ssh/authorized_keys2
-chown delugefs /usr/home/delugefs/.ssh/authorized_keys2
-chmod 600      /usr/home/delugefs/.ssh/authorized_keys2
+vi ${USERHOME}/.ssh/authorized_keys2
+chown ${CLUSTER_USER} ${USERHOME}/.ssh/authorized_keys2
+chmod 600      ${USERHOME}/.ssh/authorized_keys2
 
-su -l delugefs -c "ssh ${NEWNODE} hostname"
+su -l ${CLUSTER_USER} -c "ssh ${NEWNODE} hostname"

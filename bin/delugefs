@@ -1,7 +1,7 @@
 #!/bin/sh
 
-ZFS_DATASET="tank/delugefs"
-CLUSTER_USER="delugefs"
+ZFS_DATASET="priv/delugefs"
+CLUSTER_USER="dgfs"
 USER_ID="1007"
 CLUSTER_ID="${1}"
 shift
@@ -9,69 +9,85 @@ if [ "x" != "x${1}" ]; then
     ZFS_DATASET="${1}"
     shift
 fi
-PYSCRIPT=/usr/home/${CLUSTER_USER}/delugefs.py
+USERHOME=/usr/home/${CLUSTER_USER}
 
-service mdnsd onestatus > /dev/null 2> /dev/null || service mdnsd onestart > /dev/null 2> /dev/null
+## install freebsd package dependencies
+pkg install -y \
+py27-pybonjour mDNSResponder python27 libffi indexinfo \
+  gettext-runtime py27-setuptools27 \
+py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu \
+  python27 libffi indexinfo gettext-runtime py27-setuptools27 \
+  boost-python-libs \
+py27-sh python27 libffi indexinfo gettext-runtime py27-setuptools27 \
+fusefs-libs
 
-if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
+## start bonjour
+service mdnsd onestatus >/dev/null 2>&1 || service mdnsd onestart >/dev/null 2>&1
+## load fuse
+if ! kldstat | grep fuse >/dev/null 2>&1 ; then
     kldload fuse
-    if ! kldstat | grep fuse > /dev/null 2> /dev/null ; then
+    if ! kldstat | grep fuse >/dev/null 2>&1 ; then
         echo "ERROR: can't load fuse"
         exit 1
     fi
 fi
-sysctl vfs.usermount=1 > /dev/null 2> /dev/null
-
-sysctl vfs.fuse.mmap_enable=1 > /dev/null 2> /dev/null # has to be 1 so cp doens't error Bad Address
-sysctl vfs.fuse.data_cache_enable=1 > /dev/null 2> /dev/null # has to be 1 so cp doens't error Bad Address
+## set freebsd tunables for cache invalidation
+sysctl vfs.usermount=1 >/dev/null 2>&1 # allow users to mount
+sysctl vfs.fuse.mmap_enable=1 >/dev/null 2>&1 # has to be 1 so cp doens't error Bad Address
+sysctl vfs.fuse.data_cache_enable=1 >/dev/null 2>&1 # has to be 1 so cp doens't error Bad Address
 # invalidate fuse data cache to force reads (especially since the torrent file will change without telling FUSE)
-sysctl vfs.fuse.data_cache_invalidate=1 > /dev/null 2> /dev/null
+sysctl vfs.fuse.data_cache_invalidate=1 >/dev/null 2>&1
 # invalidate the lookup cache because files can be removed without telling FUSE
-sysctl vfs.fuse.lookup_cache_enable=1 > /dev/null 2> /dev/null
+sysctl vfs.fuse.lookup_cache_enable=1 >/dev/null 2>&1
 
-if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
+## if zfs, try creating the dataset
+if which zfs >/dev/null 2>&1 && ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
     zfs create ${ZFS_DATASET}
-    if ! zfs list ${ZFS_DATASET} > /dev/null 2> /dev/null ; then
+    if ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
         echo "ERROR: can't find zfs ${ZFS_DATASET}"
         exit 1
     fi
 fi
 
-if ! id ${USER_ID} > /dev/null 2> /dev/null ; then
+## create user
+if ! id ${USER_ID} >/dev/null 2>&1 ; then
     ### Add delugefs user
-    echo "${CLUSTER_USER}:${USER_ID}::::::/usr/home/${CLUSTER_USER}:/bin/csh:" | adduser -w no -f -
+    echo "${CLUSTER_USER}:${USER_ID}::::::${USERHOME}:/bin/csh:" | adduser -w no -f -
     pw groupmod operator -m ${CLUSTER_USER}
-    if ! id ${USER_ID} > /dev/null 2> /dev/null ; then
+    if ! id ${USER_ID} >/dev/null 2>&1 ; then
         echo "ERROR: ${CLUSTER_USER} user not exist"
         exit 1
     fi
 fi
 
-
-if [ ! -d /usr/home/${CLUSTER_USER} ]; then
-    install -d -m 755 -o ${CLUSTER_USER} /usr/home/${CLUSTER_USER}
+## create user home
+if [ ! -d ${USERHOME} ]; then
+    install -d -m 755 -o ${CLUSTER_USER} ${USERHOME}
 fi
-if [ ! -e /usr/home/${CLUSTER_USER}/.ssh/id_ed25519 ]; then
+## Setup ssh key, should replace with openssl later
+if [ ! -e ${USERHOME}/.ssh/id_ed25519 ]; then
     su -l ${CLUSTER_USER} -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
 fi
-install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py ${PYSCRIPT%/*}/fuse.py
-install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py ${PYSCRIPT}
-install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${PYSCRIPT%/*}/delugefs-shell
-cp -r ${HOME}/git/delugefs/webui ${PYSCRIPT%/*}/
-find ${PYSCRIPT%/*}/webui -type d -exec chmod 755 {} \;
-find ${PYSCRIPT%/*}/webui -type f -exec chmod 644 {} \;
+## Install files
+install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py        ${USERHOME}/fuse.py
+install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py    ${USERHOME}/delugefs.py
+install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${USERHOME}/delugefs-shell
+cp -r ${HOME}/git/delugefs/webui ${USERHOME}/
+find ${USERHOME}/webui -type d -exec chmod 755 {} \;
+find ${USERHOME}/webui -type f -exec chmod 644 {} \;
 chown ${CLUSTER_USER} /${ZFS_DATASET}
 
-
-if ! mount | grep "/tank/${CLUSTER_ID}" > /dev/null 2> /dev/null ; then
-    MOUNT="--mount /tank/${CLUSTER_ID}"
-    install -d -m 755 -o ${CLUSTER_USER} /tank/${CLUSTER_ID}
+## check if mounted already in case we are on same host but different disk
+if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
+    MOUNT="--mount /dgfs/${CLUSTER_ID}"
+    install -d -m 755 -o ${CLUSTER_USER} /dgfs/${CLUSTER_ID}
 fi
 
-su -l ${CLUSTER_USER} -c "${PYSCRIPT} \
+## run the command
+su -l ${CLUSTER_USER} -c "${USERHOME}/delugefs.py \
     ${MOUNT} \
     --cluster ${CLUSTER_ID} \
-    --root /${ZFS_DATASET}/.${CLUSTER_ID}db $*"
+    --root /${ZFS_DATASET}/_delugefs_${CLUSTER_ID} $*"
 
-# reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
+# if using ssh, reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
 # and peer pubkeys to /usr/home/delugefs/.ssh/authorized_keys2

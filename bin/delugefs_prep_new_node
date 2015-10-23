@@ -1,7 +1,10 @@
 #!/bin/sh
 
+CLUSTER_USER="dgfs"
+USERHOME=/usr/home/${CLUSTER_USER}
+
 EXISTINGNODE="${1}"
-if [ "x" == "x${EXISTINGNODE}" ]; then
+if [ "x" = "x${EXISTINGNODE}" ]; then
     echo "ERROR: missing Existing Node IP as arg1"
     exit 1
 fi
@@ -10,9 +13,9 @@ cat <<EOF
 Add this to an existing node's /usr/home/delugefs/.ssh/authorized_keys2 :
 EOF
 
-echo "command=\"/usr/home/delugefs/delugefs-shell \$SSH_ORIGINAL_COMMAND\" `cat /usr/home/delugefs/.ssh/id_ed25519.pub`"
+echo "command=\"${USERHOME}/delugefs-shell \$SSH_ORIGINAL_COMMAND\" `cat ${USERHOME}/.ssh/id_ed25519.pub`"
 
 echo "Press Enter to attemp SSH connection"
 read
 
-su -l delugefs -c "ssh ${EXISTINGNODE} hostname"
+su -l ${CLUSTER_USER} -c "ssh ${EXISTINGNODE} hostname"
