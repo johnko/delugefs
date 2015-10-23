@@ -4,6 +4,7 @@ This fork is brought to a simmer over medium-low heat, and modified to taste for
 
 # This Fork's Planned Changes
 
+- try integrate with [pyfilesystem](https://github.com/PyFilesystem/pyfilesystem)
 - switch to git over HTTPS so we don't need SSH accounts on peer's computers
 - possibility to manually add external network peer
 - performing git operations on peers with dynamic IP since SSH hostkeys are per hostname/IP
