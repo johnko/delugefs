@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ZFS_DATASET="priv/delugefs"
+ZFS_DATASET="vault/delugefs"
 CLUSTER_USER="dgfs"
 USER_ID="1007"
 CLUSTER_ID="${1}"
