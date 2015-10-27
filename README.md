@@ -44,6 +44,8 @@ Key insights this FS proves:
 - remove git (let syncthing handle conflicts)
 - local network peers autodiscovery to suggest in syncthing??
 
+- cross datacenter (or "domain") and cross node algorithm so we don't end up with 2 copies in 2 disks but only on 1 node in 1 datacenter
+
 - if I/O across the FUSE boundary is still CPU limited around ~10MB/s, see if tmpfs/ramdisk will help
 
 # This Fork's Planned Underlying Tree Layout
@@ -54,9 +56,11 @@ Key insights this FS proves:
     |   +- new/                                 # on a FS write, each node writes what chunk it has added here
     |   |   `- SHA256.torrent                   # newly added chunks, if not lazy, auto-add these torrents
     |   |
-    |   +- catalog/                             # on 100% dl, append the chunk SHA to your catalog
-    |   |   `- node-programroot-safefoldername  # use programroot folder name in case we want...
-    |   |                                       # another copy on a different folder without mounting
+    |   +- catalog/                                 # on 100% dl, append the chunk SHA to your catalog
+    |   |   `- domain/                              # for cross datacenter algorithm
+    |   |   |   `- hostname/                        # for cross node algorithm
+    |   |   |       `- programroot-safefoldername   # use programroot folder name in case we want...
+    |   |                                           # another copy on a different folder without mounting
     |   +- want/
     |   |   `- SHA256.torrent                   # symlink to or copy from chunks we want that seeders...
     |   |                                       # should auto-add if they have it
@@ -74,6 +78,12 @@ Key insights this FS proves:
     +- tmp/                 # stores data that is going to be written
         +- uuid.whole       # this is a whole file that needs to be chunked
         `- uuid.chunk       # this is a chunk of a file that we will SHA256, move to ./chunks/, then create a torrent
+
+/mnt/disk2          # let's say this one is not mounted
+    +- meta/        # as above
+    +   ...
+    +- chunks/      # as above
+        `-  ...
 ```
 
 # This Fork's Implemented Changes
