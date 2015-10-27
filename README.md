@@ -51,15 +51,15 @@ Key insights this FS proves:
 # This Fork's Planned Underlying Tree Layout
 
 ```
-/mnt/disk1
+/mnt/disk1/                                     # let's say this is mounted to ~/myfiles/synced/
     +- meta/                                    # was "gitdb", now MetaSyncLayer will handle syncing this across nodes
     |   +- new/                                 # on a FS write, each node writes what chunk it has added here
     |   |   `- SHA256.torrent                   # newly added chunks, if not lazy, auto-add these torrents
     |   |
     |   +- catalog/                                 # on 100% dl, append the chunk SHA to your catalog
     |   |   `- domain/                              # for cross datacenter algorithm
-    |   |   |   `- hostname/                        # for cross node algorithm
-    |   |   |       `- programroot-safefoldername   # use programroot folder name in case we want...
+    |   |       `- hostname/                        # for cross node algorithm
+    |   |           `- programroot-safefoldername   # use programroot folder name in case we want...
     |   |                                           # another copy on a different folder without mounting
     |   +- want/
     |   |   `- SHA256.torrent                   # symlink to or copy from chunks we want that seeders...
@@ -79,7 +79,7 @@ Key insights this FS proves:
         +- uuid.whole       # this is a whole file that needs to be chunked
         `- uuid.chunk       # this is a chunk of a file that we will SHA256, move to ./chunks/, then create a torrent
 
-/mnt/disk2          # let's say this one is not mounted
+/mnt/disk2/         # let's say this one is not mounted
     +- meta/        # as above
     +   ...
     +- chunks/      # as above
