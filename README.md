@@ -31,6 +31,7 @@ Key insights this FS proves:
 - track chunks we NEW -ly added using a metadata folder/file (so other nodes can find us if MetaSyncLayer and SyncLayer are different)
 - track chunks others HAVE using a metadata folder/file (so we can determine if we need to make another copy in some sort of reed-solomon algorithm)
 - track chunks we WANT using a metadata folder/file (because all nodes can't seed forever, we use this to dynamically add/remove seeding requests for chunks)
+- on read: verify the SHA256 before returning to FS
 
 - split up the mount logic and the sync logic so that root can mount and talk to a an unprivileged MetaSyncLayer and SyncLayer
 - MetaSyncLayer could use [syncthing](https://syncthing.net/) (with recursive folder scan disabled) for metadata and chunks in separate repos,
@@ -65,9 +66,9 @@ Key insights this FS proves:
     |   +- index/
     |       `- filename                         # traversing the FS, really just traverses this
     |
-    +- chunks/                      # was "dat"
+    +- chunks/                      # was "dat", used by FS and SyncLayer
     |   +- (SHA256 depth+width)     # split like git, to avoid limit of approx 32000 files in a folder
-    |       `- SHA256               # the chunks
+    |       `- SHA256               # the chunks, on read: verify the SHA256 before returning to FS
     |
     +- tmp/                 # stores data that is going to be written
         +- uuid.whole       # this is a whole file that needs to be chunked
