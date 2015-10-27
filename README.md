@@ -7,7 +7,7 @@ DelugeFS is a distributed filesystem [@keredson](https://github.com/keredson) im
 Key features include:
 
 - a [shared-nothing architecture](http://en.wikipedia.org/wiki/Shared_nothing_architecture) (meaning there is no master node controlling everything - all peers are equal and there is no single point of failure)
-- auto-discovery of local network peers
+- auto-discovery to suggest local network peers
 - able to utilize highly heterogeneous computational resources (ie: a random bunch of disks stuck in a random number of machines)
 
 Key insights this FS proves:
@@ -36,12 +36,13 @@ Key insights this FS proves:
 - split up the mount logic and the sync logic so that root can mount and talk to a an unprivileged MetaSyncLayer and SyncLayer
 - MetaSyncLayer could use [syncthing](https://syncthing.net/) (with recursive folder scan disabled) for metadata and chunks in separate repos,
 - or MetaSyncLayer syncthing for metadata and SyncLayer torrent for chunks (to grab from multiple sources)
+- can we run multiple instances of syncthing on one computer with different programroot folders? or do we have to do something like OpenZFS vdevs?
 
 - manually add external network peer (this should be handled by syncthing)
 - Firewall hole punching for git on peers behind NAT/firewalls (handled by syncthing and torrent dht)
 - remote the "keep_pushing" loop and let syncthing handle that
 - remove git (let syncthing handle conflicts)
-- local network peers autodiscovery for introductions in syncthing??
+- local network peers autodiscovery to suggest in syncthing??
 
 - if I/O across the FUSE boundary is still CPU limited around ~10MB/s, see if tmpfs/ramdisk will help
 
