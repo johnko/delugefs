@@ -64,7 +64,7 @@ fi
 
 ## check if mounted already in case we are on same host but different disk
 if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
-    #MOUNT="--mount /dgfs/${CLUSTER_ID}"
+    MOUNT="--mount /dgfs/${CLUSTER_ID}"
     install -d -m 755 -o ${CLUSTER_USER} /dgfs/${CLUSTER_ID}
 fi
 
