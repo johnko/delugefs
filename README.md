@@ -26,7 +26,12 @@ Key insights this FS proves:
 - try using [pyfilesystem](https://github.com/PyFilesystem/pyfilesystem)
 
 - split files into chunks similar to [GridFS](https://docs.mongodb.org/manual/core/gridfs/)
+
 - what size should the file chunks be? investigate how torrent chunks files
+- a multiple of your FS sector/stripe size?
+- make sure not to split into too many chunks or iops will be slow on split/reassemble
+- if we are transferring them, what size is good for a retry operation?
+
 - track chunk size for variable size chunks, eg. at end of file
 - store user desired filename as array of torrent hashes, save torrents in metadata folder, e.g. ./meta/torrents
 - track chunks we NEW -ly added using a metadata folder/file (so other nodes can find us if MetaSyncLayer and SyncLayer are different)
