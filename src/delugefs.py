@@ -128,7 +128,9 @@ class DelugeFS(LoggingMixIn, Operations):
         cnfn = os.path.join(self.metadir, '.__delugefs__', 'cluster_name')
         if create:
             if os.listdir(self.root):
-                raise Exception('--create specified, but %s is not empty' % self.root)
+                files = [x for x in os.listdir(fn) if x!=".git.meta" and x!="chunks" and x!="meta" ]
+                if files:
+                    raise Exception('--create specified, but %s is not empty' % self.root)
             if self.httpd.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.httpd.peers), 's' if len(self.httpd.peers)>1 else '', self.name))
             if not os.path.isdir(self.metadir): os.makedirs(self.metadir)
