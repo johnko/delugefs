@@ -14,12 +14,13 @@ USERHOME=/root
 
 ## install freebsd package dependencies
 pkg install -y \
-py27-pybonjour mDNSResponder python27 libffi indexinfo \
-    gettext-runtime py27-setuptools27 \
-py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu \
-    python27 libffi indexinfo gettext-runtime py27-setuptools27 \
-    boost-python-libs \
+python27 libffi indexinfo gettext-runtime py27-setuptools27 \
+py27-pybonjour mDNSResponder  \
+py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu boost-python-libs \
+py27-pip \
 fusefs-libs
+
+pip install rpcudp
 
 ## start bonjour
 service mdnsd onestatus >/dev/null 2>&1 || service mdnsd onestart >/dev/null 2>&1

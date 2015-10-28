@@ -63,12 +63,15 @@ if __name__ == '__main__':
     if k:  config[k] = True
     # print config
 
-    if not 'datacenter' in config:
-        datacenter = uuid.uuid4().hex
     if not 'cluster' in config:
         usage('cluster name not set')
     if not 'root' in config:
         usage('root not set')
+
+    if not 'datacenter' in config:
+        datacenter = uuid.uuid4().hex
+    else:
+        datacenter = config['datacenter']
 
     if 'webip' in config:
         webip = config['webip']
@@ -86,7 +89,7 @@ if __name__ == '__main__':
     if 'btport' in config:
         btport = int(config['btport'])
     else:
-        btport = random.randint(60000, 61000)
+        btport = 4433 # SSL torrent or random.randint(60000, 61000)
 
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     else:
         lazy = False
 
-    delugefs = DelugeFS(config['cluster'], config['root'], btport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
+    delugefs = DelugeFS(config['cluster'], config['root'], config['datacenter'], btport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
 
     try:
         if 'mount' in config:
