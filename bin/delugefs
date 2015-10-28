@@ -50,7 +50,7 @@ if which zfs >/dev/null 2>&1 && ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
         exit 1
     fi
     install -d -m 700 /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
-    umount /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
+    umount -f /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
     mount -t tmpfs tmpfs /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
 fi
 
