@@ -67,18 +67,18 @@ Key insights this FS proves:
     |   +- new/                                 # on a FS write, each node writes what chunk it has added here
     |   |   `- SHA256.torrent                   # newly added chunks, if not lazy, auto-add these torrents
     |   |
+    |   +- want/                                # copy from chunks we want that seeders...
+    |   |   `- SHA256.torrent                   # should auto-add if they have it
+    |   |
+    |   +- torrents/                            # master library of chunk metadata
+    |   |   +- (SHA256 depth+width)             # split like git, to avoid limit of approx 32000 files in a folder
+    |   |       `- SHA256.torrent
+    |   |
     |   +- catalog/                                 # on 100% dl, append the chunk SHA to your catalog
     |   |   `- domain/                              # for cross datacenter algorithm
     |   |       `- hostname/                        # for cross node algorithm
     |   |           `- programroot-safefoldername   # use programroot folder name in case we want...
     |   |                                           # another copy on a different folder without mounting
-    |   +- want/
-    |   |   `- SHA256.torrent                   # symlink to or copy from chunks we want that seeders...
-    |   |                                       # should auto-add if they have it
-    |   |
-    |   +- torrents/                            # master library of chunk metadata
-    |   |   +- (SHA256 depth+width)             # split like git, to avoid limit of approx 32000 files in a folder
-    |   |       `- SHA256.torrent
     |   +- index/
     |       `- filename                         # traversing the FS, really just traverses this
     |

@@ -87,7 +87,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.LOGLEVEL = loglevel
         self.lazy = lazy
         self.root = os.path.realpath(root)
-        self.metadir = os.path.join(self.root, u'meta')
+        self.metadir = os.path.join(self.root, u'meta', u'index')
         self.chunksdir = os.path.join(self.root, u'chunks')
         self.tmp = os.path.join(self.root, u'tmp')
         self.bt_in_progress = set()
@@ -131,7 +131,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 raise Exception('--create specified, but %s is not empty' % self.root)
             if self.httpd.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.httpd.peers), 's' if len(self.httpd.peers)>1 else '', self.name))
-            if not os.path.isdir(self.metadir): os.mkdir(self.metadir)
+            if not os.path.isdir(self.metadir): os.makedirs(self.metadir)
             os.mkdir(os.path.join(self.metadir, '.__delugefs__'))
             with open(cnfn, 'w') as f:
                 f.write(self.name)
