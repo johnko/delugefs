@@ -50,7 +50,6 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             var_req = "/api/v2/json/"
-            file_req = "/api/v2/file/"
             if self.path[0:len(var_req)]==var_req:
                 '''
                 if we are parsing a api json request
@@ -99,37 +98,6 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     otherwise key is unknown
                     '''
                     self.send_error(404,'Data Not Found: %s' % self.path[len(var_req):])
-            elif self.path[0:len(file_req)]==file_req:
-                '''
-                # TODO fix for reading chunks
-                # if we are parsing a api file request (to download the file from webui)
-                # Decode the .torrent file and serve the DAT if exists
-                # print 'self.server.api[mount]', self.server.api['mount']
-                file_path = self.path[len(file_req):]
-                try:
-                    pathparts = file_path.strip('/').split('/')
-                    newpath = os.sep.join(pathparts)
-                    # print 'pathparts',pathparts
-                    # print 'newpath',newpath
-                    repodb = os.path.join(self.server.api['root'], u'gitdb')
-                    dat = os.path.join(self.server.api['root'], u'dat')
-                    fn = os.path.join(repodb, newpath).encode(FS_ENCODE)
-                    # parse the .torrent and read it straight from the dat folder
-                    t = get_torrent_dict(fn)
-                    if t:
-                        name = t['info']['name']
-                        dat_fn = os.path.join(dat, name[:2], name)
-                        f = open(dat_fn)
-                        self.send_response(200)
-                        self.send_header('Content-type','application/octet-stream')
-                        self.end_headers()
-                        self.wfile.write(f.read())
-                        f.close()
-                    else:
-                        self.send_error(404,'File Not Found: %s' % self.path)
-                except IOError:
-                    self.send_error(404,'File Not Found: %s' % self.path)
-                '''
             else:
                 '''
                 else we are serving the home page, not parsing an api request
