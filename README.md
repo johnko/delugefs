@@ -26,6 +26,7 @@ Key insights this FS proves:
 - try using [pyfilesystem](https://github.com/PyFilesystem/pyfilesystem)
 
 - split files into chunks similar to [GridFS](https://docs.mongodb.org/manual/core/gridfs/)
+- If we use GridFS (Apache License), I think I have to update to GPLv3
 
 - what size should the file chunks be? investigate how torrent chunks files
 - a multiple of your FS sector/stripe size?
