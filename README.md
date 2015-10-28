@@ -59,6 +59,7 @@ Key insights this FS proves:
 
 ```
 /mnt/disk1/                                     # let's say this is mounted to ~/myfiles/synced/
+    +- .git.meta/                               # separate-git-dir
     +- meta/                                    # was "gitdb", now MetaSyncLayer will handle syncing this across nodes
     |   +- new/                                 # on a FS write, each node writes what chunk it has added here
     |   |   `- SHA256.torrent                   # newly added chunks, if not lazy, auto-add these torrents
