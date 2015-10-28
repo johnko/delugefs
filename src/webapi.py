@@ -164,7 +164,7 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             addr = None
             if s.addr is not None: addr = s.addr
             if (addr is None) and (self.server.nametoaddr[s.host] is not None): addr = self.server.nametoaddr[s.host]
-            self.wfile.write('{"service_name":"%s","host":"%s","addr":"%s","bt_port":"%s"}' % (s.service_name, s.host, addr, str(s.bt_port)))
+            self.wfile.write('{"service_name":"%s","host":"%s","addr":"%s","rpc_port":"%s","bt_port":"%s"}' % (s.service_name, s.host, addr, str(s.rpc_port), str(s.server.bt_port)))
             if count < 1: count += 1
         self.wfile.write(']')
 

@@ -23,7 +23,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer, hashlib
+import os, errno, sys, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer, hashlib
+from threading import Thread, Lock
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent
 import pybonjour
@@ -45,23 +46,28 @@ queried = []
 
 class RPCServer(RPCProtocol):
     noisy = True
-    def rpc_sayhi(self, sender, name):
-        # This could return a Deferred as well. sender is (ip, port)
-        return "Hello %s, you live at %s:%i" % (name, sender[0], sender[1])
+    bt_port = None
+    free_space = 0
+
+    # This could return a Deferred as well. sender is (ip, port)
+    def __get_bt_port(self, sender, name):
+        return self.bt_port
+
+    def __get_free_space(self, sender, name):
+        return self.free_space
 
 class RPCClient(RPCProtocol):
     noisy = True
-    def handleResult_bt_port(self, result):
-        if result[0]:
-            print "Success! %s" % result[1]
-        else:
-            print "Response not received."
+    bt_port = None
+    free_space = 0
 
     def handleResult_bt_port(self, result):
         if result[0]:
-            print "Success! %s" % result[1]
-        else:
-            print "Response not received."
+            self.bt_port = result[1]
+
+    def handleResult_free_space(self, result):
+        if result[0]:
+            self.free_space = result[1]
 
 '''
 Peer
@@ -74,14 +80,21 @@ class Peer(object):
         self.host = host
         self.addr = addr
         self.rpc_port = rpc_port
-        self.bt_port = None
-        self.free_space = None
         self.server = RPCClient()
-        self.reactor.listenUDP(4567, self.server)
-        self.server.__get_bt_port((self.addr, self.rpc_port)).addCallback(client.handleResult_bt_port)
-        self.server.__get_free_space((self.addr, self.rpc_port)).addCallback(client.handleResult_bt_port)
-        self.reactor.run()
+        self.__rpcudp_client()
 
+    def __rpcudp_client(self):
+        if self.addr is not None and self.rpc_port is not None:
+            self.server.__get_bt_port((self.addr, self.rpc_port)).addCallback(self.server.handleResult_bt_port)
+            self.server.__get_free_space((self.addr, self.rpc_port)).addCallback(self.server.handleResult_free_space)
+            reactor.listenUDP(random.randint(60000, 61000), self.server)
+
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
+
+    def set_attr(self, key, value):
+        self[key] = value
+        self.__rpcudp_client()
 
 '''
 DelugeFS
@@ -94,6 +107,7 @@ class DelugeFS(LoggingMixIn, Operations):
         self.name = name    # cluster name
         self.bj_name = self.name+'__'+uuid.uuid4().hex    # mDNS name
         self.rpc_port = random.randint(60000, 61000)
+        self.server = RPCServer()
         if webport is not None:
             self.httpd = WebUIServer((webip, webport), WebUIHandler)
             print 'WebUIServer listening on: http://%s:%d/' % (webip, webport)
@@ -128,9 +142,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isdir(self.root):
             os.mkdir(self.root)
 
-        self.reactor.listenUDP(1234, RPCServer())
-        self.reactor.run()
-
         self.next_time_to_check_for_undermirrored_files = datetime.datetime.now() + datetime.timedelta(0,10+random.randint(0,30))
         self.last_read_file = {}
 
@@ -144,20 +155,20 @@ class DelugeFS(LoggingMixIn, Operations):
         pe_enc_level = {0:libtorrent.enc_level.plaintext, 1:libtorrent.enc_level.rc4, 2:libtorrent.enc_level.both}
         pe_settings.allowed_enc_level = libtorrent.enc_level(pe_enc_level[1])
         self.bt_session.set_pe_settings(pe_settings)
-        self.bt_port = self.bt_session.listen_port()
-        self.server.api['btport'] = self.bt_port
+        self.server.bt_port = self.bt_session.listen_port()
+        self.httpd.api['btport'] = self.server.bt_port
         # self.bt_session.start_lsd() # no libtorrent local discovery because not sure if all local torrent clients are safe
         # self.bt_session.start_dht() # no libtorrent dht for private if we use h.connect_peer
-        print 'libtorrent listening on:', self.bt_port
+        print 'libtorrent listening on:', self.server.bt_port
         # self.bt_session.add_dht_router('localhost', 10670)
         print '...dht_state()', self.bt_session.dht_state()
 
-        t = threading.Thread(target=self.__start_webui)
-        t.daemon = True
-        t.start()
-        t = threading.Thread(target=self.__start_listening_bonjour)
-        t.daemon = True
-        t.start()
+        thread = Thread(target=self.__start_webui)
+        thread.daemon = True
+        thread.start()
+        thread = Thread(target=self.__bonjour_start_listening)
+        thread.daemon = True
+        thread.start()
         print 'give me a sec to look for other peers...'
         time.sleep(2)
 
@@ -195,19 +206,22 @@ class DelugeFS(LoggingMixIn, Operations):
         for fn in os.listdir(self.tmp): os.remove(os.path.join(self.tmp,fn))
         if not os.path.isdir(self.chunksdir): os.makedirs(self.chunksdir)
 
-        self.rwlock = threading.Lock()
+        self.rwlock = Lock()
         self.open_files = {} # used to track opened files except READONLY
         self.bootstrapping = False
 
-        t = threading.Thread(target=self.__register, args=())
-        t.daemon = True
-        t.start()
-        t = threading.Thread(target=self.__load_local_torrents)
-        t.daemon = True
-        t.start()
-        t = threading.Thread(target=self.__monitor)
-        t.daemon = True
-        t.start()
+        thread = Thread(target=self.__bonjour_register, args=())
+        thread.daemon = True
+        thread.start()
+        thread = Thread(target=self.__rpcudp_server, args=())
+        thread.daemon = True
+        thread.start()
+        thread = Thread(target=self.__load_local_torrents)
+        thread.daemon = True
+        thread.start()
+        thread = Thread(target=self.__monitor)
+        thread.daemon = True
+        thread.start()
 
     '''
     Internal functions, alphabetical
@@ -227,9 +241,9 @@ class DelugeFS(LoggingMixIn, Operations):
                 pass
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.chunksdir, uid[:2])})
         for peer in self.httpd.peers.values():
-            if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
-                if self.LOGLEVEL > 3: print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.bt_port)
-                h.connect_peer((self.httpd.nametoaddr[peer.host], peer.bt_port), 0)
+            if (peer.server.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
+                if self.LOGLEVEL > 3: print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.server.bt_port)
+                h.connect_peer((self.httpd.nametoaddr[peer.host], peer.server.bt_port), 0)
         if self.LOGLEVEL > 3: print 'added', uid
         self.httpd.bt_handles[path] = h
         self.bt_in_progress.add(path)
@@ -268,11 +282,11 @@ class DelugeFS(LoggingMixIn, Operations):
                 #print 'ignoring unrelated service', fullname
                 return
             servicename = fullname[:fullname.index('.')]
-            print 'servicename', servicename
+            print 'bonjour resolve found peer', servicename
             if not servicename in self.httpd.peers:
                 self.httpd.peers[servicename] = Peer(servicename, hosttarget)
             if '._delugefs._tcp.' in fullname:
-                self.httpd.peers[servicename].port = port
+                self.httpd.peers[servicename].set_attr('rpc_port', port)
             print 'self.httpd.peers', self.httpd.peers
             query_sdRef = pybonjour.DNSServiceQueryRecord(interfaceIndex = interfaceIndex,
                                                             fullname = hosttarget,
@@ -301,6 +315,31 @@ class DelugeFS(LoggingMixIn, Operations):
                 queried.append(True)
                 return 'pulling from new peer', fullname
 
+    def __bonjour_register(self):
+        print 'registering bonjour listener...'
+        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
+                        port=self.rpc_port, callBack=self.__bonjour_register_callback)
+        try:
+            while True:
+                ready = select.select([bjservice], [], [])
+                if bjservice in ready[0]:
+                    pybonjour.DNSServiceProcessResult(bjservice)
+        except KeyboardInterrupt:
+            pass
+
+    def __bonjour_start_listening(self):
+        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
+        try:
+            try:
+                while True:
+                    ready = select.select([browse_sdRef], [], [])
+                    if browse_sdRef in ready[0]:
+                        pybonjour.DNSServiceProcessResult(browse_sdRef)
+            except KeyboardInterrupt:
+                    pass
+        finally:
+            browse_sdRef.close()
+
     def __check_for_undermirrored_files(self):
         if self.lazy: return
         if self.next_time_to_check_for_undermirrored_files > datetime.datetime.now(): return
@@ -312,19 +351,19 @@ class DelugeFS(LoggingMixIn, Operations):
             uid_peers = collections.defaultdict(set)
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
-#            for peer_id, peer in self.httpd.peers.items():
+            for peer_id, peer in self.httpd.peers.items():
 #                for s in peer.server.__get_active_info_hashes():
 #                    counter[s] += 1
 #                    uid_peers[s].add(peer_id)
-#                peer.free_space = peer.server.__get_free_space()
-#                peer_free_space[peer_id] = peer.free_space
+                peer.free_space = peer.server.free_space
+                peer_free_space[peer_id] = peer.free_space
             if self.LOGLEVEL > 2: print 'counter', counter
             if self.LOGLEVEL > 2: print 'peer_free_space', peer_free_space
             if len(self.httpd.peers.items()) < 1:
                 if self.LOGLEVEL > 2: print "can't do anything, since i'm the only peer!"
                 return
-#            fs_free_space = sum(peer_free_space.values()) / 2 / math.pow(2,30)
-#            if self.LOGLEVEL > 2: print 'fs_free_space: %0.2fGB' % fs_free_space
+            cluster_free_space = sum(peer_free_space.values()) / math.pow(2,30)
+            if self.LOGLEVEL > 2: print 'cluster_free_space: %0.2fGB' % cluster_free_space
             for root, dirs, files in os.walk(self.metadir):
                 #print 'root, dirs, files', root, dirs, files
                 if root.startswith(os.path.join(self.metadir, '.__delugefs__')): continue
@@ -339,26 +378,26 @@ class DelugeFS(LoggingMixIn, Operations):
                     size = e['info']['length']
                     path = fn[len(self.metadir):]
                     if counter[uid] < 2:
-#                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
-#                        if self.LOGLEVEL > 2: print 'peer_free_space_list', peer_free_space_list
+                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
+                        if self.LOGLEVEL > 2: print 'peer_free_space_list', peer_free_space_list
 #                        for best_peer_id, free_space in peer_free_space_list:
 #                            if uid in my_uids and best_peer_id=='__self__':
 #                                best_peer_id = peer_free_space_list[1][0]
 #                            peer_free_space[best_peer_id] -= size
-                        if self.LOGLEVEL > 2: print 'need to rep', path, 'to'#, best_peer_id
-#                            if '__self__'==best_peer_id:
+                        if self.LOGLEVEL > 2: print 'need to rep', path #, 'to', best_peer_id
+#                        if '__self__'==best_peer_id:
                         self.__please_mirror(path)
 #                            else:
 #                                self.httpd.peers[best_peer_id].server.__please_mirror(path)
 #                                self.httpd.peers[best_peer_id].free_space -= size
-#                            break
+                        break
                     if counter[uid] > 3:
                         if self.LOGLEVEL > 2: print 'uid_peers', uid_peers
-#                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
-#                        if self.LOGLEVEL > 2: print 'peer_free_space_list2', peer_free_space_list
+                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
+                        if self.LOGLEVEL > 2: print 'peer_free_space_list2', peer_free_space_list
 #                        for best_peer_id, free_space in peer_free_space_list:
 #                            if '__self__'==best_peer_id:
-#                                if self.__please_stop_mirroring(path): break
+                        if self.__please_stop_mirroring(path): break
 #                            else:
 #                                if self.httpd.peers[best_peer_id].server.__please_stop_mirroring(path): break
 #                                self.httpd.peers[best_peer_id].free_space += size
@@ -424,14 +463,13 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 2: print 'active_info_hashes', active_info_hashes
         return active_info_hashes
 
-    def get_bt_port(self):
-        return self.bt_port
-
     def __get_free_space(self):
         f = os.statvfs(self.root)
         bsize = f[statvfs.F_BSIZE]
         if bsize > 4096: bsize = 512
         freebytes = (bsize * f[statvfs.F_BFREE])
+        # update our RPCServer
+        self.server.free_space = freebytes
         return freebytes
 
     def __load_local_torrents(self):
@@ -490,8 +528,8 @@ class DelugeFS(LoggingMixIn, Operations):
                     print 'reject - too soon since we last used it', path
                     return False
 
-            print 'i would have stopped', path
-            return False
+#            print 'i would have stopped', path
+#            return False
 
             h = self.httpd.bt_handles[path]
             if h:
@@ -506,30 +544,9 @@ class DelugeFS(LoggingMixIn, Operations):
             traceback.print_exc()
             return False
 
-    def __register(self):
-        print 'registering bonjour listener...'
-        bjservice = pybonjour.DNSServiceRegister(name=self.bj_name, regtype="_delugefs._tcp",
-                        port=self.rpc_port, callBack=self.__bonjour_register_callback)
-        try:
-            while True:
-                ready = select.select([bjservice], [], [])
-                if bjservice in ready[0]:
-                    pybonjour.DNSServiceProcessResult(bjservice)
-        except KeyboardInterrupt:
-            pass
-
-    def __start_listening_bonjour(self):
-        browse_sdRef = pybonjour.DNSServiceBrowse(regtype="_delugefs._tcp", callBack=self.__bonjour_browse_callback)
-        try:
-            try:
-                while True:
-                    ready = select.select([browse_sdRef], [], [])
-                    if browse_sdRef in ready[0]:
-                        pybonjour.DNSServiceProcessResult(browse_sdRef)
-            except KeyboardInterrupt:
-                    pass
-        finally:
-            browse_sdRef.close()
+    def __rpcudp_server(self):
+        reactor.listenUDP(self.rpc_port, RPCServer())
+        reactor.run()
 
     def __start_webui(self):
         try:

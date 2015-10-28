@@ -387,13 +387,15 @@
                         peercount = 0;
                         peertable = $('<table>');
                         peertable.append('<tr>\
-                            <th>Host</th><th>IP</th><th>BT</th>\
+                            <th>Host</th><th>IP</th><th>RPC</th><th>BT</th>\
                         </tr>');
                         $.each(val, function(k,v) {
                             btport = '';
                             row = $('<tr title="'+v['service_name']+'">');
                             row.append($('<td>'+v['host']+'</td>'));
                             row.append($('<td>'+v['addr']+'</td>'));
+                            if (v['rpc_port']!='None') rpcport = v['rpc_port'];
+                            row.append($('<td class="number">'+rpcport+'</td>'));
                             if (v['bt_port']!='None') btport = v['bt_port'];
                             row.append($('<td class="number">'+btport+'</td>'));
                             peertable.append(row);

@@ -101,7 +101,7 @@ if __name__ == '__main__':
     else:
         lazy = False
 
-    delugefs = DelugeFS(config['cluster'], config['root'], config['datacenter'], btport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
+    delugefs = DelugeFS(config['cluster'], config['root'], datacenter, btport, webip, webport, webdir, loglevel, lazy, create=config.get('create'))
 
     try:
         if 'mount' in config:
