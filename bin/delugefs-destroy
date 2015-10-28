@@ -14,3 +14,6 @@ umount -f /dgfs/${CLUSTER_ID}
 
 pkill gtfcwatch
 pkill ${ZFS_DATASET}2
+
+zfs destroy -r ${ZFS_DATASET}
+zfs destroy -r ${ZFS_DATASET}2
