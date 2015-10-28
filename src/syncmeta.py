@@ -3,7 +3,7 @@ This library abstracts the sync of meta data.
 
 It should allow us to switch between:
 
-- git
+- git (for remote and local separate disk on same host)
 - syncthing
 
 will get calls like
