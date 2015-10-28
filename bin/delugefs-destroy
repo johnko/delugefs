@@ -1,0 +1,15 @@
+#!/bin/sh
+
+ZFS_DATASET="scratch/dfs"
+CLUSTER_USER="root"
+USER_ID="0"
+CLUSTER_ID="${1}"
+shift
+if [ "x" != "x${1}" ]; then
+    ZFS_DATASET="${1}"
+    shift
+fi
+
+umount -f /dgfs/${CLUSTER_ID}
+
+pkill gtfcwatch

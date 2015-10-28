@@ -49,12 +49,9 @@ if which zfs >/dev/null 2>&1 && ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
         echo "ERROR: can't find zfs ${ZFS_DATASET}"
         exit 1
     fi
+    umount /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
     mount -t tmpfs tmpfs /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
 fi
-
-## if using gtfc
-gtfc-bootstrap /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
-gtfc-watch /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta >/dev/null 2>&1
 
 ## Setup ssh key, should replace with openssl later
 #if [ ! -e ${USERHOME}/.ssh/id_ed25519 ]; then
@@ -73,6 +70,16 @@ gtfc-watch /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta >/dev/null 2>&1
 if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
     MOUNT="--mount /dgfs/${CLUSTER_ID}"
     install -d -m 755 -o ${CLUSTER_USER} /dgfs/${CLUSTER_ID}
+    ## if using gtfc
+    if [ ! -e /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta/.git ]; then
+        gtfc-bootstrap /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
+        gtfc-watch /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta >/dev/null 2>&1
+    fi
+else
+    ## if using gtfc
+    if [ ! -e /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta/.git ]; then
+        gtfc-join `net-ip` /${ZFS_DATASET}2/_delugefs_${CLUSTER_ID}/meta /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
+    fi
 fi
 
 ## run the command
