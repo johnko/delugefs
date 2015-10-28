@@ -14,6 +14,7 @@ umount -f /dgfs/${CLUSTER_ID}
 umount -f /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
 
 pkill gtfcwatch
+pkill ${ZFS_DATASET}
 pkill ${ZFS_DATASET}2
 
 zfs destroy -r ${ZFS_DATASET}
