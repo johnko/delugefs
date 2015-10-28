@@ -17,11 +17,11 @@ On a write op:
         program_root/meta/index/original_path/original_file_name
 
     The index is a plaintext with:
-        chunk1_hash chunk1_size
-        chunk2_hash chunk2_size
-        chunk3_hash chunk3_size
+        chunk1_algo chunk1_hash chunk1_size
+        chunk2_algo chunk2_hash chunk2_size
+        chunk3_algo chunk3_hash chunk3_size
         ...
-        chunkn_hash chunkn_size
+        chunkn_algo chunkn_hash chunkn_size
 
     Finally, notify:
         syncmeta.new(index/original_path/original_file_name)
