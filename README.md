@@ -188,3 +188,21 @@ server2$ delugefs bigstore tank/delugefs --lazy --btport 6881
 The `--lazy` option means data will only be transfered during a READ, instead of in the background
 
 That's all there is to it!
+
+# Why not ... ?
+
+## Couchbase + CBFS + FUSE
+
+- RAM requirements too high and XDCR encryption only in Enterprise.
+- No sync between different platforms.
+
+## MongoDB + GridFS + FUSE
+
+- Do you really want to run a Mongo cluster?
+- Not sure if it can sync between different platforms.
+
+## CouchDB + couchdb-fuse
+
+- The db format for CouchDB is one file /var/db/dbname.db which is not great for large binary data.
+- That db file would require compaction.
+- Replication is kinda of peer-peer, but not chunks per peer.
