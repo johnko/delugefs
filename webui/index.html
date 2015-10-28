@@ -20,10 +20,6 @@
                 </div>
                 <div id="hostname" class="string"></div>
                 <div class="label">
-                    SSH Port
-                </div>
-                <div id="sshport" class="number"></div>
-                <div class="label">
                     BT Port
                 </div>
                 <div id="btport" class="number"></div>
@@ -88,7 +84,6 @@
                     <h3>Add A New Peer</h3>
                     <form>
                         <input type="text" value="Host (Name / IP)"/>
-                        <input class="port" type="text" value="SSH Port"/>
                         <button>Add Peer</button>
                     </form>
                 </div>
@@ -309,7 +304,6 @@
         <script type="text/javascript" src="/js/jquery-2.1.4.js"></script>
         <script type="text/javascript">
             id_to_populate = [
-                "sshport",
                 "btport",
                 "webip",
                 "webport",
@@ -326,10 +320,15 @@
                 "peers"
             ];
             function refresh_info() {
-                $.each(id_to_populate, function(k,v) {
-                    get_info( v );
+                $.ajax({
+                    url: "/api/v2/json/all",
+                    dataType: "json"
+                }).success(function(data) {
+                    $.each(data, function(k,v) {
+                        set_info('#'+k, v);
+                    });
                 });
-                setTimeout(function() { refresh_info(); }, 5000);
+                setTimeout(function() { refresh_info(); }, 5000); // about 5 seconds
             }
             $(document).ready(function() {
                 refresh_info();
@@ -363,22 +362,9 @@
                 $('#toggleqing').click();
                 $('#togglesleeping').click();
             });
-            function get_info(id) {
-                $.ajax({
-                    url: "/api/v2/json/" + id,
-                    dataType: "json"
-                }).success(function(data) {
-                    $.each(data, function(k,v) {
-                        set_info('#'+id, v.res);
-                        if (v.res2) {
-                            set_info2('#'+id, v.res2);
-                        }
-                    });
-                });
-            }
-            function set_info2(id, val) {
+            function set_info(id, val) {
                 if ($.isArray(val)) {
-                    if (id=='#activetorrents') {
+                    if (id=='#btpeers') {
                         btpeercount = 0;
                         btpeertable = $('<table>');
                         btpeertable.append('<tr>\
@@ -393,31 +379,17 @@
                         });
                         $('#btpeers').empty().append(btpeertable);
                         $('#btpeercount').empty().append('<span class="number"> '+btpeercount+'</span>');
-                    }
-                } else {
-                    var strval = '<span>'+val+'</span>';
-                    if ($(id).html()!=strval) {
-                        el = $(strval);
-                        $(id).empty().append(el);
-                    }
-                }
-            }
-            function set_info(id, val) {
-                if ($.isArray(val)) {
-                    if (id=='#peers') {
+                    } else if (id=='#peers') {
                         peercount = 0;
                         peertable = $('<table>');
                         peertable.append('<tr>\
-                            <th>Host</th><th>IP</th><th>SSH</th><th>BT</th>\
+                            <th>Host</th><th>IP</th><th>BT</th>\
                         </tr>');
                         $.each(val, function(k,v) {
-                            sshport = '';
                             btport = '';
                             row = $('<tr title="'+v['service_name']+'">');
                             row.append($('<td>'+v['host']+'</td>'));
                             row.append($('<td>'+v['addr']+'</td>'));
-                            if (v['ssh_port']!='None') sshport = v['ssh_port'];
-                            row.append($('<td class="number">'+sshport+'</td>'));
                             if (v['bt_port']!='None') btport = v['bt_port'];
                             row.append($('<td class="number">'+btport+'</td>'));
                             peertable.append(row);
@@ -504,6 +476,7 @@
                         $('#sleepingcount').empty().append('<span class="number"> '+sleepingcount+'</span>');
                     }
                 } else if ($.isXMLDoc(val)) {
+                    // nothing
                 } else {
                     var strval = '<span>'+val+'</span>';
                     if ($(id).html()!=strval) {

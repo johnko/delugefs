@@ -1,15 +1,16 @@
 #!/bin/sh
 
 ZFS_DATASET="vault/delugefs"
-CLUSTER_USER="dgfs"
-USER_ID="1007"
+CLUSTER_USER="root"
+USER_ID="0"
 CLUSTER_ID="${1}"
 shift
 if [ "x" != "x${1}" ]; then
     ZFS_DATASET="${1}"
     shift
 fi
-USERHOME=/usr/home/${CLUSTER_USER}
+USERHOME=/root
+#USERHOME=/usr/home/${CLUSTER_USER}
 
 ## install freebsd package dependencies
 pkg install -y \
@@ -49,45 +50,31 @@ if which zfs >/dev/null 2>&1 && ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
     fi
 fi
 
-## create user
-if ! id ${USER_ID} >/dev/null 2>&1 ; then
-    ### Add delugefs user
-    echo "${CLUSTER_USER}:${USER_ID}::::::${USERHOME}:/bin/csh:" | adduser -w no -f -
-    pw groupmod operator -m ${CLUSTER_USER}
-    if ! id ${USER_ID} >/dev/null 2>&1 ; then
-        echo "ERROR: ${CLUSTER_USER} user not exist"
-        exit 1
-    fi
-fi
-
-## create user home
-if [ ! -d ${USERHOME} ]; then
-    install -d -m 755 -o ${CLUSTER_USER} ${USERHOME}
-fi
 ## Setup ssh key, should replace with openssl later
-if [ ! -e ${USERHOME}/.ssh/id_ed25519 ]; then
-    su -l ${CLUSTER_USER} -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
-fi
+#if [ ! -e ${USERHOME}/.ssh/id_ed25519 ]; then
+#    su -l ${CLUSTER_USER} -c "ssh-keygen -N '' -t ed25519 -f ~/.ssh/id_ed25519"
+#fi
 ## Install files
-install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py        ${USERHOME}/fuse.py
-install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py    ${USERHOME}/delugefs.py
-install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${USERHOME}/delugefs-shell
-cp -r ${HOME}/git/delugefs/webui ${USERHOME}/
-find ${USERHOME}/webui -type d -exec chmod 755 {} \;
-find ${USERHOME}/webui -type f -exec chmod 644 {} \;
-chown ${CLUSTER_USER} /${ZFS_DATASET}
+#install -m 644 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/fuse.py        ${USERHOME}/fuse.py
+#install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/src/delugefs.py    ${USERHOME}/delugefs.py
+#install -m 755 -o ${CLUSTER_USER} ${HOME}/git/delugefs/bin/delugefs-shell ${USERHOME}/delugefs-shell
+#cp -r ${HOME}/git/delugefs/webui ${USERHOME}/
+#find ${USERHOME}/webui -type d -exec chmod 755 {} \;
+#find ${USERHOME}/webui -type f -exec chmod 644 {} \;
+#chown ${CLUSTER_USER} /${ZFS_DATASET}
 
 ## check if mounted already in case we are on same host but different disk
 if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
-    MOUNT="--mount /dgfs/${CLUSTER_ID}"
+    #MOUNT="--mount /dgfs/${CLUSTER_ID}"
     install -d -m 755 -o ${CLUSTER_USER} /dgfs/${CLUSTER_ID}
 fi
 
 ## run the command
-su -l ${CLUSTER_USER} -c "${USERHOME}/delugefs.py \
+#su -l ${CLUSTER_USER} -c "/usr/local/bin/python2.7 -m dfs \
+/usr/local/bin/python2.7 -m dfs \
     ${MOUNT} \
     --cluster ${CLUSTER_ID} \
-    --root /${ZFS_DATASET}/_delugefs_${CLUSTER_ID} $*"
+    --root /${ZFS_DATASET}/_delugefs_${CLUSTER_ID} $*
 
 # if using ssh, reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
 # and peer pubkeys to /usr/home/delugefs/.ssh/authorized_keys2
