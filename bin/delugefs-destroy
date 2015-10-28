@@ -10,12 +10,18 @@ if [ "x" != "x${1}" ]; then
     shift
 fi
 
-umount -f /dgfs/${CLUSTER_ID}
-umount -f /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
+while mount | grep /dgfs/${CLUSTER_ID} ; do
+    echo umount -f /dgfs/${CLUSTER_ID}
+    umount -f /dgfs/${CLUSTER_ID}
+done
 
-pkill gtfcwatch
 pkill ${ZFS_DATASET}
 pkill ${ZFS_DATASET}2
+
+pkill gtfcwatch
+
+umount -f /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
+umount -f /${ZFS_DATASET}2/_delugefs_${CLUSTER_ID}/tmp/
 
 zfs destroy -r ${ZFS_DATASET}
 zfs destroy -r ${ZFS_DATASET}2
