@@ -27,6 +27,7 @@ Key insights this FS proves:
 
 - split files into chunks similar to [GridFS](https://docs.mongodb.org/manual/core/gridfs/)
 - what size should the file chunks be? investigate how torrent chunks files
+- track chunk size for variable size chunks, eg. at end of file
 - store user desired filename as array of torrent hashes, save torrents in metadata folder, e.g. ./meta/torrents
 - track chunks we NEW -ly added using a metadata folder/file (so other nodes can find us if MetaSyncLayer and SyncLayer are different)
 - track chunks others HAVE using a metadata folder/file (so we can determine if we need to make another copy in some sort of reed-solomon algorithm)
