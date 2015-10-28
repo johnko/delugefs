@@ -401,17 +401,17 @@
                         qingcount = 0;
                         qingtable = $('<table>');
                         qingtable.append('<tr>\
-                            <th>File</th><th>Progress</th><th>State</th>\
+                            <th>Chunk</th><th>Progress</th><th>State</th>\
                         </tr>');
                         sleepingcount = 0;
                         sleepingtable = $('<table>');
                         sleepingtable.append('<tr>\
-                            <th>File</th>\
+                            <th>Chunk</th>\
                         </tr>');
                         activecount = 0;
                         activetable = $('<table>');
                         activetable.append('<tr>\
-                            <th>File</th><th>Progress</th><th>Down</th><th>Up</th><th>Peers</th><th>State</th>\
+                            <th>Chunk</th><th>Progress</th><th>Down</th><th>Up</th><th>Peers</th><th>State</th>\
                         </tr>');
                         $.each(val, function(k,v) {
                             progress = '';
@@ -423,8 +423,7 @@
                             filename = patharray[patharray.length-1];
                             row = $('<tr title="'+v['hash_name']+'">');
 
-                            if (v['state']=='seeding') row.append($('<td><a href="/api/v2/file/'+v['path']+'">'+filename+'</a></td>'));
-                            else row.append($('<td>'+filename+'</td>'));
+                            row.append($('<td>'+filename+'</td>'));
 
                             progress = '<div class="progress"><div class="bar" style="width:'+v['progress']+'%;">&nbsp;</div></div>';
 
