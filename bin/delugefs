@@ -44,12 +44,17 @@ sysctl vfs.fuse.lookup_cache_enable=1 >/dev/null 2>&1
 
 ## if zfs, try creating the dataset
 if which zfs >/dev/null 2>&1 && ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
-    zfs create ${ZFS_DATASET}
+    zfs create -p ${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/chunks
     if ! zfs list ${ZFS_DATASET} >/dev/null 2>&1 ; then
         echo "ERROR: can't find zfs ${ZFS_DATASET}"
         exit 1
     fi
+    mount -t tmpfs tmpfs /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
 fi
+
+## if using gtfc
+gtfc-bootstrap /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
+gtfc-watch /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta >/dev/null 2>&1
 
 ## Setup ssh key, should replace with openssl later
 #if [ ! -e ${USERHOME}/.ssh/id_ed25519 ]; then
