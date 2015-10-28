@@ -186,6 +186,9 @@ class DelugeFS(LoggingMixIn, Operations):
         info = libtorrent.torrent_info(torrent)
         dat_file = os.path.join(self.chunksdir, uid[:2], uid)
         if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
+        if not os.path.isfile(dat_file):
+            with open(dat_file,'wb') as f:
+                pass
         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.chunksdir, uid[:2])})
         for peer in self.httpd.peers.values():
             if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
@@ -194,24 +197,6 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 3: print 'added', uid
         self.httpd.bt_handles[path] = h
         self.bt_in_progress.add(path)
-
-    def __add_torrent_and_wait(self, path, t):
-        uid = t['info']['name']
-        info = libtorrent.torrent_info(t)
-        dat_file = os.path.join(self.chunksdir, uid[:2], uid)
-        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
-        if not os.path.isfile(dat_file):
-            with open(dat_file,'wb') as f:
-                pass
-        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.chunksdir, uid[:2])})
-        for peer in self.httpd.peers.values():
-            if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
-                print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.bt_port)
-                h.connect_peer((self.httpd.nametoaddr[peer.host], peer.bt_port), 0)
-        print 'added ', path
-        self.httpd.bt_handles[path] = h
-        self.bt_in_progress.add(path)
-        print 'file created'
 
     def __bonjour_browse_callback(self, sdRef, flags, interfaceIndex, errorCode, serviceName, regtype, replyDomain):
         if errorCode != pybonjour.kDNSServiceErr_NoError:
@@ -628,7 +613,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     name = t['info']['name']
                     dat_fn = os.path.join(self.chunksdir, name[:2], name)
                     if not os.path.isfile(dat_fn):
-                        self.__add_torrent_and_wait(path, t)
+                        self.__add_torrent(path, t)
                     self.last_read_file[path] = datetime.datetime.now()
                     return os.open(dat_fn, flags)
                 else:
@@ -763,8 +748,8 @@ class DelugeFS(LoggingMixIn, Operations):
                     if self.LOGLEVEL > 3: print '%s is %s' % (path, name)
                     dat_fn = os.path.join(self.chunksdir, name[:2], name)
                     if not os.path.isfile(dat_fn):
-                        if self.LOGLEVEL > 3: print 'truncate __add_torrent_and_wait'
-                        self.__add_torrent_and_wait(path, t)
+                        if self.LOGLEVEL > 3: print 'truncate __add_torrent'
+                        self.__add_torrent(path, t)
                     self.last_read_file[path] = datetime.datetime.now()
                     with open(dat_fn, 'r+') as f:
                         if self.LOGLEVEL > 3: print 'truncate f.truncate'
