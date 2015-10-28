@@ -38,6 +38,11 @@ This class will handle the HTTP requests
 '''
 class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
+    silence the logs
+    '''
+    def log_message(self, format, *args):
+        return
+    '''
     do_GET
     ----
     This function is run for every GET HTTP request
