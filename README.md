@@ -119,8 +119,11 @@ FreeBSD:
 - pkg install py27-pybonjour mDNSResponder
 - pkg install py27-libtorrent-rasterbar libtorrent-rasterbar
 - pkg install fusefs-libs
+
+And another way to sync the meta data, maybe Syncthing or [gtfc](https://github.com/johnko/gtfc):
+
 - pkg install syncthing
-- pkg install git py27-sh # we want to get rid of this dependency by 0.4
+
 
 # Current Status
 

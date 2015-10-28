@@ -15,11 +15,10 @@ USERHOME=/root
 ## install freebsd package dependencies
 pkg install -y \
 py27-pybonjour mDNSResponder python27 libffi indexinfo \
-  gettext-runtime py27-setuptools27 \
+    gettext-runtime py27-setuptools27 \
 py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu \
-  python27 libffi indexinfo gettext-runtime py27-setuptools27 \
-  boost-python-libs \
-py27-sh python27 libffi indexinfo gettext-runtime py27-setuptools27 \
+    python27 libffi indexinfo gettext-runtime py27-setuptools27 \
+    boost-python-libs \
 fusefs-libs
 
 ## start bonjour
