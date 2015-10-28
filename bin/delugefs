@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ZFS_DATASET="vault/delugefs"
+ZFS_DATASET="scratch/dfs"
 CLUSTER_USER="root"
 USER_ID="0"
 CLUSTER_ID="${1}"
@@ -23,6 +23,7 @@ fusefs-libs
 
 ## start bonjour
 service mdnsd onestatus >/dev/null 2>&1 || service mdnsd onestart >/dev/null 2>&1
+
 ## load fuse
 if ! kldstat | grep fuse >/dev/null 2>&1 ; then
     kldload fuse
@@ -31,6 +32,7 @@ if ! kldstat | grep fuse >/dev/null 2>&1 ; then
         exit 1
     fi
 fi
+
 ## set freebsd tunables for cache invalidation
 sysctl vfs.usermount=1 >/dev/null 2>&1 # allow users to mount
 sysctl vfs.fuse.mmap_enable=1 >/dev/null 2>&1 # has to be 1 so cp doens't error Bad Address
@@ -74,6 +76,3 @@ fi
     ${MOUNT} \
     --cluster ${CLUSTER_ID} \
     --root /${ZFS_DATASET}/_delugefs_${CLUSTER_ID} $*
-
-# if using ssh, reminder to add peers to /usr/home/delugefs/.ssh/known_hosts
-# and peer pubkeys to /usr/home/delugefs/.ssh/authorized_keys2

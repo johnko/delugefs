@@ -3,7 +3,9 @@
 APP_VERSION='0.4-dev'
 
 '''
-DelugeFS - A shared-nothing distributed filesystem built using Python, Bittorrent, Git and Zeroconf
+DelugeFS - A shared-nothing distributed filesystem built using Python, Bittorrent and Zeroconf.
+            You'll need another setup such as Syncthing or a git cluster to sync the meta data.
+
 Copyright (C) 2013  Derek Anderson
 Copyright (C) 2015  John Ko  git@johnko.ca
 
@@ -27,7 +29,7 @@ import libtorrent
 import pybonjour
 from webapi import WebUIServer, WebUIHandler
 
-SECONDS_TO_NEXT_CHECK = 120
+SECONDS_TO_NEXT_CHECK = 10 # 120
 FS_ENCODE = sys.getfilesystemencoding()
 if not FS_ENCODE: FS_ENCODE = 'utf-8'
 
