@@ -78,7 +78,7 @@ if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
 else
     ## if using gtfc
     if [ ! -e /${ZFS_DATASET}2/_delugefs_${CLUSTER_ID}/meta/.git ]; then
-        gtfc-join `net-ip` /${ZFS_DATASET}2/_delugefs_${CLUSTER_ID}/meta /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
+        gtfc-join `net-ip` /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta /${ZFS_DATASET}2/_delugefs_${CLUSTER_ID}/meta
     fi
 fi
 
