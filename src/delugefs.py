@@ -294,7 +294,6 @@ class DelugeFS(LoggingMixIn, Operations):
 #            if self.LOGLEVEL > 2: print 'fs_free_space: %0.2fGB' % fs_free_space
             for root, dirs, files in os.walk(self.metadir):
                 #print 'root, dirs, files', root, dirs, files
-                if root.startswith(os.path.join(self.metadir, '.git')): continue
                 if root.startswith(os.path.join(self.metadir, '.__delugefs__')): continue
                 for fn in files:
                     if fn=='.__delugefs_dir__': continue
@@ -404,7 +403,6 @@ class DelugeFS(LoggingMixIn, Operations):
         #print 'self.metadir', self.metadir
         for root, dirs, files in os.walk(self.metadir):
             #print 'root, dirs, files', root, dirs, files
-            if root.startswith(os.path.join(self.metadir, '.git')): continue
             if root.startswith(os.path.join(self.metadir, '.__delugefs__')): continue
             for fn in files:
                 if fn=='.__delugefs_dir__': continue
