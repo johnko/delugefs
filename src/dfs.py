@@ -81,7 +81,7 @@ if __name__ == '__main__':
     if 'webdir' in config:
         webdir = config['webdir']
     else:
-        webdir = homepath+'/webui'
+        webdir = os.path.join(homepath, u'webui')
 
     if 'btport' in config:
         btport = int(config['btport'])
