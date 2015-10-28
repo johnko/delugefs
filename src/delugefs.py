@@ -371,7 +371,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 try: os.mkdir(dat_dir)
                 except: pass
             shutil.copyfile(tmp_fn, os.path.join(dat_dir, uid))
-            os.remove(tmp_fn, os.path.join(dat_dir, uid))
+            os.remove(tmp_fn)
             #print 'committing', fn
             self.should_push = True
             self.__add_torrent(tdata, path)
