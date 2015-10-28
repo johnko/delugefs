@@ -11,6 +11,7 @@ if [ "x" != "x${1}" ]; then
 fi
 
 umount -f /dgfs/${CLUSTER_ID}
+umount -f /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/tmp/
 
 pkill gtfcwatch
 pkill ${ZFS_DATASET}2
