@@ -24,7 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os, errno, sys, threading, collections, uuid, shutil, traceback, random, select, time, socket, multiprocessing, stat, datetime, statvfs, math, BaseHTTPServer, SocketServer, hashlib
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 import libtorrent
-import sh # try to code it so we can remove 'import sh' for windows
 import pybonjour
 from webapi import WebUIServer, WebUIHandler
 
