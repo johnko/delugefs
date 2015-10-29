@@ -563,19 +563,18 @@ class DelugeFS(LoggingMixIn, Operations):
             raise FuseOSError(errno.EACCES)
         #return os.access(fn, mode)
 
-    def chmod(self, path, mode):
-        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
-        return os.chmod(fn, mode)
+    chmod = None
 
-    def chown(self, path, uid, gid):
-        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
-        return os.chown(path, uid, gid)
+    chown = None
 
     def create(self, path, mode):
         with self.rwlock:
             tmp = uuid.uuid4().hex
             self.open_files[path] = tmp
             fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
+            print 'readdir', fn
+            print 'index', self.indexdir
+            print 'path', path
             with open(fn,'wb') as f:
                 pass
             return os.open(os.path.join(self.tmp, tmp).encode(FS_ENCODE), os.O_WRONLY | os.O_CREAT, mode)
@@ -595,8 +594,9 @@ class DelugeFS(LoggingMixIn, Operations):
         else:
             fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             torrent = get_torrent_dict(fn)
-            torrent_info = torrent['info']  if torrent else None
-            st_size = torrent['length'] if torrent_info else 0
+            if torrent:
+                torrent_info = torrent['info']  if torrent else None
+                st_size = torrent_info['length'] if torrent_info else 0
         st = os.lstat(fn)
         ret = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
             'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
@@ -607,11 +607,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     getxattr = None
 
-# TODO XXX FIX
-    def link(self, target, source):
-#        with self.rwlock:
-#            return os.link(source, target)
-        return 0
+    link = None
 
     listxattr = None
 
@@ -623,7 +619,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 f.write("git doesn't track empty dirs, so we add this file.")
             return 0
 
-#    mknod = os.mknod
+    mknod = None
 
     def open(self, path, flags):
         with self.rwlock:
@@ -695,7 +691,7 @@ class DelugeFS(LoggingMixIn, Operations):
             fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             return ['.', '..'] + [x for x in os.listdir(fn) if x!=".__delugefs_dir__" ]
 
-#    readlink = os.readlink
+    readlink = None
 
     def release(self, path, fh):
         with self.rwlock:
@@ -732,17 +728,12 @@ class DelugeFS(LoggingMixIn, Operations):
     def statfs(self, path):
         fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
         if self.LOGLEVEL > 3: print 'statfs %s' % (path)
-        stv = os.statvfs(fn.encode(FS_ENCODE))
+        stv = os.statvfs(fn)
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
             'f_blocks', 'f_bsize', 'f_favail', 'f_ffree', 'f_files', 'f_flag',
             'f_frsize', 'f_namemax'))
 
-# TODO XXX FIX
-    def symlink(self, target, source):
-#        with self.rwlock:
-#            ret = os.symlink(source, target)
-#            return ret
-        return 0
+    symlink = None
 
     def truncate(self, path, length, fh=None):
         with self.rwlock:
@@ -769,8 +760,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         f.truncate(length)
                     return 0
 
-    def utimens(self, path, times=None):
-        return os.utime(self._full_path(path), times)
+    utimens = None
 
     def unlink(self, path):
         with self.rwlock:

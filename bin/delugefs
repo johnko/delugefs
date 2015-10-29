@@ -70,9 +70,9 @@ fi
 #chown ${CLUSTER_USER} /${ZFS_DATASET}
 
 ## check if mounted already in case we are on same host but different disk
-if ! mount | grep "/dgfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
-    MOUNT="--mount /dgfs/${CLUSTER_ID}"
-    install -d -m 755 -o ${CLUSTER_USER} /dgfs/${CLUSTER_ID}
+if ! mount | grep "/dfs/${CLUSTER_ID}" >/dev/null 2>&1 ; then
+    MOUNT="--mount /dfs/${CLUSTER_ID}"
+    install -d -m 755 -o ${CLUSTER_USER} /dfs/${CLUSTER_ID}
     ## if using gtfc
     if [ ! -e /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta/.git ]; then
         gtfc-bootstrap /${ZFS_DATASET}/_delugefs_${CLUSTER_ID}/meta
