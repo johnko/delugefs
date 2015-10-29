@@ -53,17 +53,6 @@ class Peer(object):
         self.bt_port = bt_port # SSL Torrent
         self.free_space = 0
 
-    def __get_free_space(self):
-        freebytes = 0
-        # TODO read from meta/info/servicename/free_space
-        '''
-        f = os.statvfs(self.root)
-        bsize = f[statvfs.F_BSIZE]
-        if bsize > 4096: bsize = 512
-        freebytes = (bsize * f[statvfs.F_BFREE])
-        '''
-        return freebytes
-
 '''
 DelugeFS
 ----
@@ -123,9 +112,9 @@ class DelugeFS(LoggingMixIn, Operations):
         self.bt_port = self.bt_session.listen_port()
         self.httpd.api['btport'] = self.bt_port
 
-        # no libtorrent dht for private if we use h.connect_peer
-        # self.bt_session.start_lsd()
-        self.bt_session.stop_lsd()
+        # no libtorrent lsd for private if we use h.connect_peer
+        self.bt_session.start_lsd()
+        # self.bt_session.stop_lsd()
 
         # no libtorrent dht for private if we use h.connect_peer
         # self.bt_session.start_dht()
@@ -153,7 +142,7 @@ class DelugeFS(LoggingMixIn, Operations):
             if self.httpd.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.httpd.peers), 's' if len(self.httpd.peers)>1 else '', self.name))
             if not os.path.isdir(self.metadir): os.makedirs(self.metadir)
-            os.mkdir(os.path.join(self.metadir, '.__delugefs__').encode(FS_ENCODE))
+            os.mkdir(os.path.dirname(cnfn))
             with open(cnfn, 'w') as f:
                 f.write(self.name)
         else:
@@ -208,7 +197,7 @@ class DelugeFS(LoggingMixIn, Operations):
         if not os.path.isfile(dat_file):
             with open(dat_file,'wb') as f:
                 pass
-        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.chunksdir, uid[:2]).encode(FS_ENCODE)})
+        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.dirname(dat_file)})
         for peer in self.httpd.peers.values():
             if (peer.bt_port is not None) and (self.httpd.nametoaddr[peer.host] is not None):
                 if self.LOGLEVEL > 3: print 'adding peer:', (self.httpd.nametoaddr[peer.host], peer.bt_port)
@@ -324,7 +313,8 @@ class DelugeFS(LoggingMixIn, Operations):
 #                for s in peer.__get_active_info_hashes():
 #                    counter[s] += 1
 #                    uid_peers[s].add(peer_id)
-                peer.free_space = peer.__get_free_space()
+                # TODO read from meta/info/servicename/free_space
+                peer.free_space = peer.free_space
                 peer_free_space[peer_id] = peer.free_space
             if self.LOGLEVEL > 2: print 'counter', counter
             if self.LOGLEVEL > 2: print 'peer_free_space', peer_free_space
@@ -438,9 +428,9 @@ class DelugeFS(LoggingMixIn, Operations):
         if bsize > 4096: bsize = 512
         freebytes = (bsize * f[statvfs.F_BFREE])
         # TODO read, then write to only if different
-        fn = os.path.join(self.metadir, 'info', self.bjname).encode(FS_ENCODE)
-        if not os.path.isdir(fn): os.makedirs(fn)
-        with open(os.path.join(fn, 'free_space').encode(FS_ENCODE),'w') as f:
+        fn = os.path.join(self.metadir, 'info', self.bj_name, 'free_space').encode(FS_ENCODE)
+        if not os.path.isdir(os.path.dirname(fn)): os.makedirs(os.path.dirname(fn))
+        with open(fn,'w') as f:
             f.write("%i" % freebytes)
         return freebytes
 
@@ -456,18 +446,16 @@ class DelugeFS(LoggingMixIn, Operations):
                 e = get_torrent_dict(fn)
                 if not e:
                     print 'not able to read torrent', fn
-                    continue
-                #with open(fn,'rb') as f:
-                #  e = libtorrent.bdecode(f.read())
-                uid = e['info']['name']
-                info = libtorrent.torrent_info(e)
-                dat_file = os.path.join(self.chunksdir, uid[:2], uid).encode(FS_ENCODE)
-                #print 'dat_file', dat_file
-                if os.path.isfile(dat_file):
-                    if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
-                    h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.join(self.chunksdir, uid[:2]).encode(FS_ENCODE)})
-                    if self.LOGLEVEL > 3: print 'added ', fn, '(%s)'%uid
-                    self.httpd.bt_handles[fn[len(self.metadir):]] = h
+                else:
+                    uid = e['info']['name']
+                    info = libtorrent.torrent_info(e)
+                    dat_file = os.path.join(self.chunksdir, uid[:2], uid).encode(FS_ENCODE)
+                    #print 'dat_file', dat_file
+                    if os.path.isfile(dat_file):
+                        if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
+                        h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.dirname(dat_file)})
+                        if self.LOGLEVEL > 3: print 'added ', fn, '(%s)'%uid
+                        self.httpd.bt_handles[fn[len(self.metadir):]] = h
         if self.LOGLEVEL > 3: print 'self.httpd.bt_handles', self.httpd.bt_handles
 
     def __monitor(self):
@@ -585,10 +573,9 @@ class DelugeFS(LoggingMixIn, Operations):
         else:
             fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
             if os.path.isfile(fn) and (not path.startswith('/.__delugefs__')):
-                with open(fn, 'rb') as f:
-                    torrent = libtorrent.bdecode(f.read())
-                    torrent_info = torrent.get('info')  if torrent else None
-                    st_size = torrent_info.get('length') if torrent_info else 0
+                torrent = get_torrent_dict(fn)
+                torrent_info = torrent['info']  if torrent else None
+                st_size = torrent['length'] if torrent_info else 0
         st = os.lstat(fn)
         ret = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
             'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
@@ -648,7 +635,7 @@ class DelugeFS(LoggingMixIn, Operations):
                     tmp = uuid.uuid4().hex
                     if os.path.isfile(fn):
                         with open(fn, 'rb') as f:
-                            prev = libtorrent.bdecode(f.read())['info']['name']
+                            prev = get_torrent_dict['info']['name']
                             prev_fn = os.path.join(self.chunksdir, prev[:2], prev).encode(FS_ENCODE)
                             if os.path.isfile(prev_fn):
                                 if self.LOGLEVEL > 3: print 'shutil.copy to tmp'
@@ -725,9 +712,9 @@ class DelugeFS(LoggingMixIn, Operations):
             fn = os.path.join(self.metadir, path, '/.__delugefs_dir__').encode(FS_ENCODE)
             if os.path.isfile(fn):
                 os.remove(fn)
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
-            if os.path.isdir(fn):
-                os.rmdir(fn)
+            dn = os.path.dirname(dn)
+            if os.path.isdir(dn):
+                os.rmdir(dn)
             return 0
 
     def statfs(self, path):
@@ -780,14 +767,13 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             if path.startswith('/.__delugefs__'): return 0
             fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
-            with open(fn, 'rb') as f:
-                torrent = libtorrent.bdecode(f.read())
-                torrent_info = torrent.get('info')  if torrent else None
-                name = torrent_info.get('name') if torrent_info else ''
-                dfn = os.path.join(self.chunksdir, name[:2], name).encode(FS_ENCODE)
-                if os.path.isfile(dfn):
-                    os.remove(dfn)
-                    print 'deleted', dfn
+            torrent = get_torrent_dict(fn)
+            torrent_info = torrent.get('info')  if torrent else None
+            name = torrent_info.get('name') if torrent_info else ''
+            dfn = os.path.join(self.chunksdir, name[:2], name).encode(FS_ENCODE)
+            if os.path.isfile(dfn):
+                os.remove(dfn)
+                print 'deleted', dfn
             os.remove(fn)
             return 0
 
