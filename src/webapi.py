@@ -74,14 +74,6 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.wfile.write('"res2":')
                     self.json_btpeers()
                     self.wfile.write('}]')
-                elif key == 'freespace':
-                    '''
-                    or key is freespace then we have to generate the output
-                    '''
-                    self.header_plaintext()
-                    self.wfile.write('[{"res":')
-                    self.json_freespace()
-                    self.wfile.write('}]')
                 elif key == 'peers':
                     '''
                     or key is peers then we have to generate the output
@@ -126,9 +118,6 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(',')
         self.wfile.write('"activetorrents":')
         self.json_torrents()
-        self.wfile.write(',')
-        self.wfile.write('"freespace":')
-        self.json_freespace()
         self.wfile.write('}')
 
     def json_btpeers(self):
@@ -143,13 +132,6 @@ class WebUIHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write('{"ip":"%s","bt_port":"%s"}' % (i.split(':')[0],i.split(':')[1]))
             if count < 1: count += 1
         self.wfile.write(']')
-
-    def json_freespace(self):
-        f = os.statvfs(self.server.api['root'])
-        bsize = f[statvfs.F_BSIZE]
-        if bsize > 4096: bsize = 512
-        freebytes = (bsize * f[statvfs.F_BFREE]) / 1024 / 1024 / 1024
-        self.wfile.write('"%d GB"' % freebytes)
 
     def json_key(self, key):
         if key in self.server.api:

@@ -51,7 +51,6 @@ class Peer(object):
         self.host = host
         self.addr = addr
         self.bt_port = bt_port # SSL Torrent
-        self.free_space = 0
 
 '''
 DelugeFS
@@ -79,7 +78,8 @@ class DelugeFS(LoggingMixIn, Operations):
                 'hostname':socket.gethostname(),
                 'datacenter':datacenter,
                 'mount':'-',
-                'gitlog':'-',
+                'freespace': 0,
+                'cluster_freespace': 0,
                 'version':'v%s' % APP_VERSION
                 }
         self.httpd.bt_handles = {}
@@ -90,7 +90,8 @@ class DelugeFS(LoggingMixIn, Operations):
         self.lazy = lazy
 
         self.root = os.path.realpath(root)
-        self.metadir = os.path.join(self.root, 'meta', 'index').encode(FS_ENCODE)
+        self.indexdir = os.path.join(self.root, 'meta', 'index').encode(FS_ENCODE)
+        self.metadir = os.path.join(self.root, 'meta').encode(FS_ENCODE)
         self.chunksdir = os.path.join(self.root, 'chunks').encode(FS_ENCODE)
         self.tmp = os.path.join(self.root, 'tmp').encode(FS_ENCODE)
         if not os.path.isdir(self.root):
@@ -133,7 +134,7 @@ class DelugeFS(LoggingMixIn, Operations):
         print 'give me a sec to look for other peers...'
         time.sleep(2)
 
-        cnfn = os.path.join(self.metadir, '.__delugefs__', 'cluster_name').encode(FS_ENCODE)
+        cnfn = os.path.join(self.metadir, '__delugefs__', 'cluster_name').encode(FS_ENCODE)
         if create:
             if os.listdir(self.root):
                 files = [x for x in os.listdir(self.root) if x!=".git.meta" and x!="chunks" and x!="meta" and x!="tmp" ]
@@ -141,10 +142,15 @@ class DelugeFS(LoggingMixIn, Operations):
                     raise Exception('--create specified, but %s is not empty' % self.root)
             if self.httpd.peers:
                 raise Exception('--create specified, but i found %i peer%s using --id "%s" already' % (len(self.httpd.peers), 's' if len(self.httpd.peers)>1 else '', self.name))
+
             if not os.path.isdir(self.metadir): os.makedirs(self.metadir)
-            os.mkdir(os.path.dirname(cnfn))
+            if not os.path.isdir(os.path.dirname(cnfn)): os.mkdir(os.path.dirname(cnfn))
             with open(cnfn, 'w') as f:
                 f.write(self.name)
+
+            if not os.path.isdir(self.indexdir): os.makedirs(self.indexdir)
+            with open(os.path.join(self.indexdir, '/.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
+                f.write("git doesn't track empty dirs, so we add this file.")
         else:
             if os.path.isfile(cnfn):
                 with open(cnfn, 'r') as f:
@@ -305,27 +311,27 @@ class DelugeFS(LoggingMixIn, Operations):
             if self.LOGLEVEL > 2: print 'check_for_undermirrored_files @', datetime.datetime.now()
             my_uids = set(self.__get_active_info_hashes())
             counter = collections.Counter(my_uids)
-            peer_free_space = {'__self__': self.__get_free_space()}
+            peer_freespace = {'__self__': self.__get_freespace()}
             uid_peers = collections.defaultdict(set)
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
             for peer_id, peer in self.httpd.peers.items():
+
 #                for s in peer.__get_active_info_hashes():
 #                    counter[s] += 1
 #                    uid_peers[s].add(peer_id)
-                # TODO read from meta/info/servicename/free_space
-                peer.free_space = peer.free_space
-                peer_free_space[peer_id] = peer.free_space
+                # read from meta/info/servicename/freespace
+                peer_freespace[peer_id] = self.__get_peer_freespace(peer_id)
             if self.LOGLEVEL > 2: print 'counter', counter
-            if self.LOGLEVEL > 2: print 'peer_free_space', peer_free_space
+            if self.LOGLEVEL > 2: print 'peer_freespace', peer_freespace
             if len(self.httpd.peers.items()) < 1:
                 if self.LOGLEVEL > 2: print "can't do anything, since i'm the only peer!"
                 return
-            cluster_free_space = sum(peer_free_space.values()) / math.pow(2,30)
-            if self.LOGLEVEL > 2: print 'cluster_free_space: %0.2fGB' % cluster_free_space
-            for root, dirs, files in os.walk(self.metadir):
+            self.httpd.api['cluster_freespace'] = '%0.2fGB' % (sum(peer_freespace.values()) / math.pow(2,30))
+            if self.LOGLEVEL > 3: print 'cluster_freespace: %s' % self.httpd.api['cluster_freespace']
+            for root, dirs, files in os.walk(self.indexdir):
                 #print 'root, dirs, files', root, dirs, files
-                if root.startswith(os.path.join(self.metadir, '.__delugefs__').encode(FS_ENCODE)): continue
+                if root.startswith(os.path.join(self.indexdir, '__delugefs__').encode(FS_ENCODE)): continue
                 for fn in files:
                     if fn=='.__delugefs_dir__': continue
                     fn = os.path.join(root, fn).encode(FS_ENCODE)
@@ -335,31 +341,31 @@ class DelugeFS(LoggingMixIn, Operations):
                         continue
                     uid = e['info']['name']
                     size = e['info']['length']
-                    path = fn[len(self.metadir):]
+                    path = fn[len(self.indexdir):]
                     if counter[uid] < 2:
-                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
-                        if self.LOGLEVEL > 2: print 'peer_free_space_list', peer_free_space_list
-#                        for best_peer_id, free_space in peer_free_space_list:
+                        peer_freespace_list = sorted([x for x in peer_freespace.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
+                        if self.LOGLEVEL > 2: print 'peer_freespace_list', peer_freespace_list
+#                        for best_peer_id, freespace in peer_freespace_list:
 #                            if uid in my_uids and best_peer_id=='__self__':
-#                                best_peer_id = peer_free_space_list[1][0]
-#                            peer_free_space[best_peer_id] -= size
+#                                best_peer_id = peer_freespace_list[1][0]
+#                            peer_freespace[best_peer_id] -= size
                         if self.LOGLEVEL > 2: print 'need to rep', path #, 'to', best_peer_id
 #                        if '__self__'==best_peer_id:
                         self.__please_mirror(path)
 #                            else:
 #                                self.httpd.peers[best_peer_id].__please_mirror(path)
-#                                self.httpd.peers[best_peer_id].free_space -= size
+#                                self.httpd.peers[best_peer_id].freespace -= size
                         break
                     if counter[uid] > 3:
                         if self.LOGLEVEL > 2: print 'uid_peers', uid_peers
-                        peer_free_space_list = sorted([x for x in peer_free_space.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
-                        if self.LOGLEVEL > 2: print 'peer_free_space_list2', peer_free_space_list
-#                        for best_peer_id, free_space in peer_free_space_list:
+                        peer_freespace_list = sorted([x for x in peer_freespace.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
+                        if self.LOGLEVEL > 2: print 'peer_freespace_list2', peer_freespace_list
+#                        for best_peer_id, freespace in peer_freespace_list:
 #                            if '__self__'==best_peer_id:
                         if self.__please_stop_mirroring(path): break
 #                            else:
 #                                if self.httpd.peers[best_peer_id].__please_stop_mirroring(path): break
-#                                self.httpd.peers[best_peer_id].free_space += size
+#                                self.httpd.peers[best_peer_id].freespace += size
                         if self.LOGLEVEL > 2: print '__please_stop_mirroring', path, 'sent to'#, best_peer_id
         except Exception as e:
             traceback.print_exc()
@@ -392,7 +398,7 @@ class DelugeFS(LoggingMixIn, Operations):
             libtorrent.set_piece_hashes(t, self.tmp)
             tdata = t.generate()
             #print tdata
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             with open(fn, 'wb') as f:
                 f.write(libtorrent.bencode(tdata))
             #print 'wrote', fn
@@ -422,23 +428,42 @@ class DelugeFS(LoggingMixIn, Operations):
         if self.LOGLEVEL > 2: print 'active_info_hashes', active_info_hashes
         return active_info_hashes
 
-    def __get_free_space(self):
+    def __get_freespace(self):
         f = os.statvfs(self.root)
         bsize = f[statvfs.F_BSIZE]
         if bsize > 4096: bsize = 512
         freebytes = (bsize * f[statvfs.F_BFREE])
-        # TODO read, then write to only if different
-        fn = os.path.join(self.metadir, 'info', self.bj_name, 'free_space').encode(FS_ENCODE)
+        # read, then write to only if different
+        fn = os.path.join(self.metadir, 'info', self.bj_name, 'freespace').encode(FS_ENCODE)
         if not os.path.isdir(os.path.dirname(fn)): os.makedirs(os.path.dirname(fn))
-        with open(fn,'w') as f:
-            f.write("%i" % freebytes)
+        old_freebytes = 0
+        if os.path.isfile(fn):
+            with open(fn, 'r') as f:
+                old_freebytes = f.read().strip()
+        if old_freebytes != freebytes:
+            with open(fn,'w') as f:
+                f.write("%i" % freebytes)
+        self.httpd.api['freespace'] = '%0.2fGB' % (freebytes / math.pow(2,30))
         return freebytes
 
+    def __get_peer_freespace(self, servicename):
+        # very simply read from the info
+        fn = os.path.join(self.metadir, 'info', servicename, 'freespace').encode(FS_ENCODE)
+        if not os.path.isdir(os.path.dirname(fn)): os.makedirs(os.path.dirname(fn))
+        old_freebytes = 0
+        if os.path.isfile(fn):
+            with open(fn, 'r') as f:
+                try:
+                    old_freebytes = int(f.read().strip())
+                except:
+                    pass
+        return old_freebytes
+
     def __load_local_torrents(self):
-        #print 'self.metadir', self.metadir
-        for root, dirs, files in os.walk(self.metadir):
+        #print 'self.indexdir', self.indexdir
+        for root, dirs, files in os.walk(self.indexdir):
             #print 'root, dirs, files', root, dirs, files
-            if root.startswith(os.path.join(self.metadir, '.__delugefs__').encode(FS_ENCODE)): continue
+            if root.startswith(os.path.join(self.indexdir, '__delugefs__').encode(FS_ENCODE)): continue
             for fn in files:
                 if fn=='.__delugefs_dir__': continue
                 fn = os.path.join(root, fn).encode(FS_ENCODE)
@@ -455,7 +480,7 @@ class DelugeFS(LoggingMixIn, Operations):
                         if not os.path.isdir(os.path.dirname(dat_file)): os.mkdir(os.path.dirname(dat_file))
                         h = self.bt_session.add_torrent({'ti':info, 'save_path':os.path.dirname(dat_file)})
                         if self.LOGLEVEL > 3: print 'added ', fn, '(%s)'%uid
-                        self.httpd.bt_handles[fn[len(self.metadir):]] = h
+                        self.httpd.bt_handles[fn[len(self.indexdir):]] = h
         if self.LOGLEVEL > 3: print 'self.httpd.bt_handles', self.httpd.bt_handles
 
     def __monitor(self):
@@ -468,7 +493,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def __please_mirror(self, path):
         try:
             if self.LOGLEVEL > 3: print '__please_mirror', path
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             torrent = get_torrent_dict(fn)
             if torrent:
                 self.__add_torrent(torrent, path)
@@ -512,7 +537,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def __write_active_torrents(self):
         try:
-            with open(os.path.join(self.metadir, '.__delugefs__', 'active_torrents').encode(FS_ENCODE), 'w') as f:
+            with open(os.path.join(self.metadir, '__delugefs__', 'active_torrents').encode(FS_ENCODE), 'w') as f:
                 for path, h in self.httpd.bt_handles.items():
                     s = h.status()
                     state_str = ['queued', 'checking', 'downloading metadata', 'downloading', 'finished', 'seeding', 'allocating', 'checking resume data']
@@ -535,25 +560,24 @@ class DelugeFS(LoggingMixIn, Operations):
     Fuse FS calls in alphabetical order
     '''
     def access(self, path, mode):
-        fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
         if not os.access(fn, mode):
             raise FuseOSError(errno.EACCES)
         #return os.access(fn, mode)
 
     def chmod(self, path, mode):
-        fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
         return os.chmod(fn, mode)
 
     def chown(self, path, uid, gid):
-        fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
         return os.chown(path, uid, gid)
 
     def create(self, path, mode):
         with self.rwlock:
-            if path.startswith('/.__delugefs__'): return 0
             tmp = uuid.uuid4().hex
             self.open_files[path] = tmp
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             with open(fn,'wb') as f:
                 pass
             return os.open(os.path.join(self.tmp, tmp).encode(FS_ENCODE), os.O_WRONLY | os.O_CREAT, mode)
@@ -571,16 +595,13 @@ class DelugeFS(LoggingMixIn, Operations):
         if path in self.open_files:
             fn = os.path.join(self.tmp, self.open_files[path]).encode(FS_ENCODE)
         else:
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
-            if os.path.isfile(fn) and (not path.startswith('/.__delugefs__')):
-                torrent = get_torrent_dict(fn)
-                torrent_info = torrent['info']  if torrent else None
-                st_size = torrent['length'] if torrent_info else 0
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
+            torrent = get_torrent_dict(fn)
+            torrent_info = torrent['info']  if torrent else None
+            st_size = torrent['length'] if torrent_info else 0
         st = os.lstat(fn)
         ret = dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
             'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
-        if path.startswith('/.__delugefs__'):
-            ret['st_mode'] = ret['st_mode'] & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH) # no write for group/other
         if st_size is not None:
             ret['st_size'] = st_size
         if self.LOGLEVEL > 4: print ret
@@ -598,8 +619,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def mkdir(self, path, flags):
         with self.rwlock:
-            if path.startswith('/.__delugefs__'): return 0
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             os.mkdir(fn, flags)
             with open(os.path.join(fn, '/.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
                 f.write("git doesn't track empty dirs, so we add this file.")
@@ -609,10 +629,8 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def open(self, path, flags):
         with self.rwlock:
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             if not (flags & (os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_EXCL | os.O_TRUNC)):
-                if path.startswith('/.__delugefs__'):
-                    return os.open(fn, flags)
                 if self.LOGLEVEL > 3: print '\treadonly'
                 t = get_torrent_dict(fn)
                 if t:
@@ -626,7 +644,6 @@ class DelugeFS(LoggingMixIn, Operations):
                     return os.open(fn, flags)
             else:
                 # read and write below
-                if path.startswith('/.__delugefs__'): return 0
                 if path in self.open_files:
                     if self.LOGLEVEL > 3: print '%s in self.open_files' % (path)
                     tmp = self.open_files[path]
@@ -677,7 +694,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def readdir(self, path, fh):
         with self.rwlock:
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             return ['.', '..'] + [x for x in os.listdir(fn) if x!=".__delugefs_dir__" ]
 
 #    readlink = os.readlink
@@ -698,18 +715,15 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def rename(self, old, new):
         with self.rwlock:
-            if old.startswith('/.__delugefs__'): return 0
-            if new.startswith('/.__delugefs__'): return 0
-            fn = os.path.join(self.metadir,new).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir,new).encode(FS_ENCODE)
             if os.path.isfile(fn):
                 os.remove(fn)
-            os.rename(self.metadir+old, self.metadir+new)
+            os.rename(self.indexdir+old, self.indexdir+new)
             return 0
 
     def rmdir(self, path):
         with self.rwlock:
-            if path.startswith('/.__delugefs__'): return 0
-            fn = os.path.join(self.metadir, path, '/.__delugefs_dir__').encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path, '/.__delugefs_dir__').encode(FS_ENCODE)
             if os.path.isfile(fn):
                 os.remove(fn)
             dn = os.path.dirname(dn)
@@ -718,7 +732,7 @@ class DelugeFS(LoggingMixIn, Operations):
             return 0
 
     def statfs(self, path):
-        fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+        fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
         if self.LOGLEVEL > 3: print 'statfs %s' % (path)
         stv = os.statvfs(fn.encode(FS_ENCODE))
         return dict((key, getattr(stv, key)) for key in ('f_bavail', 'f_bfree',
@@ -728,8 +742,6 @@ class DelugeFS(LoggingMixIn, Operations):
 # TODO XXX FIX
     def symlink(self, target, source):
 #        with self.rwlock:
-#            if target.startswith('/.__delugefs__'): return 0
-#            if source.startswith('/.__delugefs__'): return 0
 #            ret = os.symlink(source, target)
 #            return ret
         return 0
@@ -737,8 +749,7 @@ class DelugeFS(LoggingMixIn, Operations):
     def truncate(self, path, length, fh=None):
         with self.rwlock:
             if self.LOGLEVEL > 3: print 'truncate fh is ', fh
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
-            if path.startswith('/.__delugefs__'): return 0
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             if path in self.open_files: # file was opened in READWRITE
                 with open(os.path.join(self.tmp, self.open_files[path]).encode(FS_ENCODE), 'r+') as f:
                     f.truncate(length)
@@ -765,8 +776,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def unlink(self, path):
         with self.rwlock:
-            if path.startswith('/.__delugefs__'): return 0
-            fn = os.path.join(self.metadir, path).encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             torrent = get_torrent_dict(fn)
             torrent_info = torrent.get('info')  if torrent else None
             name = torrent_info.get('name') if torrent_info else ''

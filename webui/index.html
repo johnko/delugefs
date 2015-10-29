@@ -12,10 +12,6 @@
             <h2>This Node Info</h2>
             <div class="table">
                 <div class="label">
-                    Git Log
-                </div>
-                <div id="gitlog" class="hilite"></div>
-                <div class="label">
                     Hostname
                 </div>
                 <div id="hostname" class="string"></div>
@@ -73,7 +69,7 @@
                 <div class="label">
                     Disk Free Space
                 </div>
-                <div class="number">TODO <span class="warn">if &lt; 10</span></div>
+                <div id="cluster_freespace" class="number"></div>
             </div>
             <div class="clear">
                 <h3>Disk Space Pie Chart</h3>
@@ -84,37 +80,37 @@
         </div>
         <div class="container border float-left">
             <h2>Peers<span id="peercount"></span></h2>
-                <div class="form">
+                <!--div class="form">
                     <h3>Add A New Peer</h3>
                     <form>
                         <input type="text" value="Host (Name / IP)"/>
                         <button>Add Peer</button>
                     </form>
-                </div>
+                </div-->
             <div class="data" id="peers"></div>
         </div>
         <div class="container border float-left">
             <h2>Torrent Peers<span id="btpeercount"></span></h2>
-                <div class="form">
+                <!--div class="form">
                     <h3>Add A Torrent Peer</h3>
                     <form>
                         <input type="text" value="Host (Name / IP)"/>
                         <input class="port" type="text" value="BT Port"/>
                         <button>Add Peer</button>
                     </form>
-                </div>
+                </div-->
             <div class="data" id="btpeers"></div>
         </div>
         <div class="container border float-left">
             <h2>DHT Routers</h2>
-                <div class="form">
+                <!--div class="form">
                     <h3>Add A DHT Router</h3>
                     <form>
                         <input type="text" value="Host (Name / IP)"/>
                         <input class="port" type="text" value="DHT Port"/>
                         <button>Add Router</button>
                     </form>
-                </div>
+                </div-->
             <div class="data">
                 Todo...
             </div>
@@ -387,15 +383,13 @@
                         peercount = 0;
                         peertable = $('<table>');
                         peertable.append('<tr>\
-                            <th>Host</th><th>IP</th><th>RPC</th><th>BT</th>\
+                            <th>Host</th><th>IP</th><th>BT</th>\
                         </tr>');
                         $.each(val, function(k,v) {
                             btport = '';
                             row = $('<tr title="'+v['service_name']+'">');
                             row.append($('<td>'+v['host']+'</td>'));
                             row.append($('<td>'+v['addr']+'</td>'));
-                            if (v['rpc_port']!='None') rpcport = v['rpc_port'];
-                            row.append($('<td class="number">'+rpcport+'</td>'));
                             if (v['bt_port']!='None') btport = v['bt_port'];
                             row.append($('<td class="number">'+btport+'</td>'));
                             peertable.append(row);
