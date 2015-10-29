@@ -89,7 +89,7 @@ if __name__ == '__main__':
     if 'btport' in config:
         btport = int(config['btport'])
     else:
-        btport = 4433 # SSL torrent or random.randint(60000, 61000)
+        btport = random.randint(60000, 61000)
 
     if 'loglevel' in config:
         loglevel = int(config['loglevel'])

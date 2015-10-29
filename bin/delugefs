@@ -17,10 +17,11 @@ pkg install -y \
 python27 libffi indexinfo gettext-runtime py27-setuptools27 \
 py27-pybonjour mDNSResponder  \
 py27-libtorrent-rasterbar libtorrent-rasterbar GeoIP boost-libs icu boost-python-libs \
-py27-pip \
 fusefs-libs
 
-pip install rpcudp
+#py27-pip \
+
+#pip install \
 
 ## start bonjour
 service mdnsd onestatus >/dev/null 2>&1 || service mdnsd onestart >/dev/null 2>&1
