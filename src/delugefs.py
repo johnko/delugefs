@@ -46,11 +46,12 @@ Peer
 This class represents a peer object. many peers will be initialized during normal use
 '''
 class Peer(object):
-    def __init__(self, service_name, host, addr=None, bt_port=4433):
+    def __init__(self, service_name, host, addr=None, bt_port=4433, datacenter=None):
         self.service_name = service_name
         self.host = host
         self.addr = addr
         self.bt_port = bt_port # SSL Torrent
+        self.datacenter = datacenter
 
 '''
 DelugeFS
@@ -149,7 +150,7 @@ class DelugeFS(LoggingMixIn, Operations):
                 f.write(self.name)
 
             if not os.path.isdir(self.indexdir): os.makedirs(self.indexdir)
-            with open(os.path.join(self.indexdir, '/.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
+            with open(os.path.join(self.indexdir, '.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
                 f.write("git doesn't track empty dirs, so we add this file.")
         else:
             if os.path.isfile(cnfn):
@@ -316,16 +317,15 @@ class DelugeFS(LoggingMixIn, Operations):
             for uid in my_uids:
                 uid_peers[uid].add('__self__')
             for peer_id, peer in self.httpd.peers.items():
-
-#                for s in peer.__get_active_info_hashes():
-#                    counter[s] += 1
-#                    uid_peers[s].add(peer_id)
+                for s in self.__get_peer_active_info_hashes(peer_id, peer.host, peer.datacenter):
+                    counter[s] += 1
+                    uid_peers[s].add(peer_id)
                 # read from meta/info/servicename/freespace
                 peer_freespace[peer_id] = self.__get_peer_freespace(peer_id)
             if self.LOGLEVEL > 2: print 'counter', counter
-            if self.LOGLEVEL > 2: print 'peer_freespace', peer_freespace
+            if self.LOGLEVEL > 3: print 'peer_freespace', peer_freespace
             if len(self.httpd.peers.items()) < 1:
-                if self.LOGLEVEL > 2: print "can't do anything, since i'm the only peer!"
+                if self.LOGLEVEL > 3: print "can't do anything, since i'm the only peer!"
                 return
             self.httpd.api['cluster_freespace'] = '%0.2fGB' % (sum(peer_freespace.values()) / math.pow(2,30))
             if self.LOGLEVEL > 3: print 'cluster_freespace: %s' % self.httpd.api['cluster_freespace']
@@ -345,27 +345,21 @@ class DelugeFS(LoggingMixIn, Operations):
                     if counter[uid] < 2:
                         peer_freespace_list = sorted([x for x in peer_freespace.items() if x[0] not in uid_peers[uid]], lambda x,y: x[1]<y[1])
                         if self.LOGLEVEL > 2: print 'peer_freespace_list', peer_freespace_list
-#                        for best_peer_id, freespace in peer_freespace_list:
-#                            if uid in my_uids and best_peer_id=='__self__':
-#                                best_peer_id = peer_freespace_list[1][0]
-#                            peer_freespace[best_peer_id] -= size
-                        if self.LOGLEVEL > 2: print 'need to rep', path #, 'to', best_peer_id
-#                        if '__self__'==best_peer_id:
-                        self.__please_mirror(path)
-#                            else:
-#                                self.httpd.peers[best_peer_id].__please_mirror(path)
-#                                self.httpd.peers[best_peer_id].freespace -= size
-                        break
-                    if counter[uid] > 3:
+                        for best_peer_id, freespace in peer_freespace_list:
+                            if uid in my_uids and best_peer_id=='__self__':
+                                best_peer_id = peer_freespace_list[1][0]
+                            peer_freespace[best_peer_id] -= size
+                            if self.LOGLEVEL > 2: print 'need to rep', path #, 'to', best_peer_id
+                            if '__self__'==best_peer_id:
+                                self.__please_mirror(path)
+                            break
+                    elif counter[uid] > 3:
                         if self.LOGLEVEL > 2: print 'uid_peers', uid_peers
                         peer_freespace_list = sorted([x for x in peer_freespace.items() if x[0] in uid_peers[uid]], lambda x,y: x[1]>y[1])
                         if self.LOGLEVEL > 2: print 'peer_freespace_list2', peer_freespace_list
-#                        for best_peer_id, freespace in peer_freespace_list:
-#                            if '__self__'==best_peer_id:
-                        if self.__please_stop_mirroring(path): break
-#                            else:
-#                                if self.httpd.peers[best_peer_id].__please_stop_mirroring(path): break
-#                                self.httpd.peers[best_peer_id].freespace += size
+                        for best_peer_id, freespace in peer_freespace_list:
+                            if '__self__'==best_peer_id:
+                                if self.__please_stop_mirroring(path): break
                         if self.LOGLEVEL > 2: print '__please_stop_mirroring', path, 'sent to'#, best_peer_id
         except Exception as e:
             traceback.print_exc()
@@ -426,6 +420,11 @@ class DelugeFS(LoggingMixIn, Operations):
                 traceback.print_exc()
                 del self.httpd.bt_handles[k]
         if self.LOGLEVEL > 2: print 'active_info_hashes', active_info_hashes
+        return active_info_hashes
+
+    def __get_peer_active_info_hashes(self, servicename, host, datacenter):
+        # TODO read from metadir/datacenter/host/servicename/active
+        active_info_hashes = []
         return active_info_hashes
 
     def __get_freespace(self):
@@ -511,10 +510,9 @@ class DelugeFS(LoggingMixIn, Operations):
                 if (datetime.datetime.now()-self.last_read_file[path]).seconds < 60*60*6:
                     print 'reject - too soon since we last used it', path
                     return False
-
-#            print 'i would have stopped', path
-#            return False
-
+            print 'i would have stopped', path
+            return False
+            # THIS DELETES THE CHUNK
             h = self.httpd.bt_handles[path]
             if h:
                 uid = h.get_torrent_info().name()
@@ -621,7 +619,7 @@ class DelugeFS(LoggingMixIn, Operations):
         with self.rwlock:
             fn = os.path.join(self.indexdir, path).encode(FS_ENCODE)
             os.mkdir(fn, flags)
-            with open(os.path.join(fn, '/.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
+            with open(os.path.join(fn, '.__delugefs_dir__').encode(FS_ENCODE),'w') as f:
                 f.write("git doesn't track empty dirs, so we add this file.")
             return 0
 
@@ -723,7 +721,7 @@ class DelugeFS(LoggingMixIn, Operations):
 
     def rmdir(self, path):
         with self.rwlock:
-            fn = os.path.join(self.indexdir, path, '/.__delugefs_dir__').encode(FS_ENCODE)
+            fn = os.path.join(self.indexdir, path, '.__delugefs_dir__').encode(FS_ENCODE)
             if os.path.isfile(fn):
                 os.remove(fn)
             dn = os.path.dirname(dn)
