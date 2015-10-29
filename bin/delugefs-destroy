@@ -10,9 +10,9 @@ if [ "x" != "x${1}" ]; then
     shift
 fi
 
-while mount | grep /dgfs/${CLUSTER_ID} ; do
-    echo umount -f /dgfs/${CLUSTER_ID}
-    umount -f /dgfs/${CLUSTER_ID}
+while mount | grep /dfs/${CLUSTER_ID} ; do
+    echo umount -f /dfs/${CLUSTER_ID}
+    umount -f /dfs/${CLUSTER_ID}
 done
 
 pkill ${ZFS_DATASET}
